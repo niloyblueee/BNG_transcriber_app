@@ -6,6 +6,10 @@ from dotenv import load_dotenv
 from itertools import zip_longest
 import re
 from openai import OpenAI
+from flask_cors import CORS
+
+
+
 
 load_dotenv()                               # reads .env
 client = OpenAI()                           # auto‑reads OPENAI_API_KEY
@@ -14,6 +18,7 @@ AUDIO_EXTS = {".mp3", ".m4a", ".wav", ".webm", ".ogg"}
 AUDIO_FOLDER = Path(__file__).parent        # folder containing app.py
 
 app = Flask(__name__)
+CORS(app)
 
 ASCII_RE = re.compile(r'^[\x00-\x7F]+$')   # “pure ASCII” tester
 
@@ -54,10 +59,10 @@ def fix_spelling(transcription: str) -> str:
 def summarize_with_gpt_mini(text: str) -> tuple[str, list[str]]:
     """
     Uses GPT-4o Mini to create a short Bengali summary and 3-5 key points.
-    Returns (summary, key_points_list).
+    Returns (summary, keyPoints_list).
     """
     prompt = (
-        "Summarize the transcription of the audio and give key points in Bengali \n\n"
+        "in 4 lines Summarize the transcription of the audio and give key points in Bengali \n\n"
         f"টেক্সট:\n{text}"
     )
 
@@ -81,74 +86,32 @@ def summarize_with_gpt_mini(text: str) -> tuple[str, list[str]]:
     parts = out.split("\n", 1)
     summary = parts[0].strip()
     bullet_block = parts[1] if len(parts) > 1 else ""
-    key_points = [
+    keyPoints = [
         line.lstrip("–- ").strip()
         for line in bullet_block.splitlines()
         if line.strip()
     ]
-    return summary, key_points
+    return summary, keyPoints
 
 
-# ---------- UI ----------
-@app.route("/")
-def index():
-    files = [f.name for f in AUDIO_FOLDER.iterdir()
-             if f.suffix.lower() in AUDIO_EXTS]
 
-    return render_template_string(
-        """
-        <!doctype html><html><head>
-        <meta charset="utf-8"><title>Whisper Transcriber</title>
-        <style>
-          body{font-family:system-ui, sans-serif;max-width:640px;margin:2rem auto}
-          button{padding:.4rem .8rem;border:1px solid #444;border-radius:6px;cursor:pointer}
-          pre{white-space:pre-wrap;background:#f6f8fa;border:1px solid #ddd;padding:1rem;border-radius:8px}
-        </style></head><body>
-          <h1>Whisper Transcriber</h1>
-          {% if files %}
-            <ul>
-            {% for f in files %}
-              <li>{{f}}
-                  <button onclick="tx('{{f}}')">BN</button>  <!-- No language param -->
-                  <button onclick="tx('{{f}}','en')">EN</button>
-              </li>
-            {% endfor %}
-            </ul>
-          {% else %}
-            <p><em>No audio files next to app.py.</em></p>
-          {% endif %}
-          <h2>Result</h2><pre id="out">Click a button…</pre>
-          <script>
-            async function tx(fname, lang){
-              const out = document.getElementById('out');
-              out.textContent='⏳ Transcribing '+fname+' …';
-              const fd=new FormData();
-              fd.append('filename',fname);
-              fd.append('language',lang);
-              const r=await fetch('/transcribe_local',{method:'POST',body:fd});
-              const j=await r.json();
-              out.textContent=j.error?('❌ '+j.error):j.transcription;
-            }
-          </script>
-        </body></html>
-        """, files=files
-    )
+
 
 # ---------- transcribe local file ----------
 @app.route("/transcribe_local", methods=["POST"])
 def transcribe_local():
     """
-    Transcribe an audio file using GPT-4o-mini-transcribe (Bangla/English).
+    Accepts an uploaded audio file and transcribes it.
     """
-    filename = request.form.get("filename")
+    uploaded_file = request.files.get("file")
     language = request.form.get("language")  # optional
 
-    if not filename:
-        return jsonify(error="No filename provided"), 400
+    if not uploaded_file or uploaded_file.filename == "":
+        return jsonify(error="No file uploaded"), 400
 
-    filepath = AUDIO_FOLDER / filename
-    if not filepath.exists():
-        return jsonify(error="File not found"), 404
+    filepath = AUDIO_FOLDER / uploaded_file.filename
+    uploaded_file.save(filepath)
+
     if filepath.suffix.lower() not in AUDIO_EXTS:
         return jsonify(error="Unsupported file type"), 415
 
@@ -161,23 +124,21 @@ def transcribe_local():
             if language == "en":
                 params["language"] = "en"
             elif language == "bn":
-                params["language"] = "bn"  # Optional, Whisper can autodetect too
+                params["language"] = "bn"
 
             transcript = client.audio.transcriptions.create(**params)
             raw_text = transcript.text
-            summary, key_points = summarize_with_gpt_mini(raw_text)
-            corrected_text = fix_spelling(transcript.text)
+            summary, keyPoints = summarize_with_gpt_mini(raw_text)
+            corrected_text = fix_spelling(raw_text)
 
         return jsonify(
-                transcription=corrected_text,
-                summary=summary,
-                key_points=key_points)
-                                        
-        #return jsonify(transcription=transcript.text)
-    
+            transcription=corrected_text,
+            summary=summary,
+            keyPoints=keyPoints)
 
     except Exception as exc:
         return jsonify(error=str(exc)), 500
+
 
 # ---------- fallback upload endpoint ----------
 @app.route("/transcribe", methods=["POST"])
@@ -201,12 +162,12 @@ def transcribe_upload():
 
             transcript = client.audio.transcriptions.create(**params)
             raw_text = transcript.text
-            summary, key_points = summarize_with_gpt_mini(raw_text)
+            summary, keyPoints = summarize_with_gpt_mini(raw_text)
             corrected_text = fix_spelling(transcript.text)
         return jsonify(
                 transcription=corrected_text,
                 summary=summary,
-                key_points=key_points
+                keyPoints=keyPoints
             )            
         
         #return jsonify(transcription=transcript.text)
