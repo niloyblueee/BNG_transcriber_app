@@ -6,7 +6,7 @@ function App() {
   const [summary, setSummary] = useState("");
   const [keyPoints, setKeyPoints] = useState([]);
   const [selectedFile,setSelectedFile] = useState([])
-
+  
 
   const handleFileChange = (e) => {
     setSelectedFile(e.target.files[0]);
@@ -22,6 +22,7 @@ function App() {
   const formData = new FormData();
   formData.append("file", selectedFile); // MUST match Flask: request.files["file"]
   formData.append("language", "bn");
+ 
 
   try {
     const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/transcribe_local`, {

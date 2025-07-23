@@ -62,7 +62,7 @@ def summarize_with_gpt_mini(text: str) -> tuple[str, list[str]]:
     Returns (summary, keyPoints_list).
     """
     prompt = (
-        "in 4 lines Summarize the transcription of the audio and give key points in Bengali \n\n"
+        "in few lines Summarize the transcription of the audio and give key points in Bengali \n\n"
         f"টেক্সট:\n{text}"
     )
 
@@ -119,7 +119,9 @@ def transcribe_local():
         with filepath.open("rb") as f:
             params = {
                 "model": "gpt-4o-mini-transcribe",
-                "file": f
+                "file": f,
+                "prompt": "You are a transcription engine. Transcribe this audio word-for-word, without skipping or summarizing anything, even if it sounds repetitive or unimportant. Use Bangla script where applicable."
+
             }
             if language == "en":
                 params["language"] = "en"
