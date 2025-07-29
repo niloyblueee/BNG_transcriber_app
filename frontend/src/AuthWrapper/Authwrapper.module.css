@@ -1,0 +1,47 @@
+/* AuthWrapper.module.css */
+.loginScreen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+}
+
+.loginScreen h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.loginScreen p {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.appHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: #0077cc;
+  color: white;
+}
+
+.accountSection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logoutButton {
+  padding: 0.4rem 0.8rem;
+  background: #ff5a5f;
+  border: none;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.logoutButton:hover {
+  background: #e0484d;
+}

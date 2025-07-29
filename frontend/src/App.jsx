@@ -1,13 +1,24 @@
 import { useState } from 'react';
 import './App.css';
+import Header  from './Header';
+import AuthWrapper from './AuthWrapper/Authwrapper.jsx';
 
 function App() {
   const [transcription, setTranscription] = useState("");
   const [summary, setSummary] = useState("");
   const [keyPoints, setKeyPoints] = useState([]);
   const [selectedFile,setSelectedFile] = useState([])
-  
+  const [user, setUser] = useState(null);
 
+  if (!user) {
+    return (
+      <AuthWrapper onLogin={setUser} />
+    );
+  }
+
+
+
+  
   const handleFileChange = (e) => {
     setSelectedFile(e.target.files[0]);
   };
@@ -54,38 +65,34 @@ function App() {
 
   return (
     <div className="app">
+      <Header user={user} onLogout={() => setUser(null)} />
       <main>
         <div className="upload-area">
           <input type="file" accept="audio/*" onChange={handleFileChange} />
           <button onClick={handleUpload}>Upload and Transcribe</button>
-
         </div>
-          <div className="output-container">
-            <div className="transcription-box">
+        <div className="output-container">
+          <div className="transcription-box">
             <h2>Transcription</h2>
             <p>{transcription}</p>
           </div>
-
           <div className="summary-box">
             <h2>Summary</h2>
             <p>{summary}</p>
           </div>
-
           <div className="keypoints-box">
             <h2>Key Points</h2>
             {Array.isArray(keyPoints) && keyPoints.length > 0 ? (
               <ul>
-                  {keyPoints.slice(1).map((point, index) => (
-                    <ol key={index}>{point}</ol>
-                  ))}
+                {keyPoints.slice(1).map((point, index) => (
+                  <ol key={index}>{point}</ol>
+                ))}
               </ul>
             ) : (
-              <p > No key points available. </p>
+              <p>No key points available.</p>
             )}
-
           </div>
-       </div>
-
+        </div>
       </main>
     </div>
   );

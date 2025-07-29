@@ -7,12 +7,17 @@ from itertools import zip_longest
 import re
 from openai import OpenAI
 from flask_cors import CORS
+from google.oauth2 import id_token
+from google.auth.transport import requests as grequests
 
 
 
 
 load_dotenv()                               # reads .env
 client = OpenAI()                           # auto‑reads OPENAI_API_KEY
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+
 
 AUDIO_EXTS = {".mp3", ".m4a", ".wav", ".webm", ".ogg"}
 AUDIO_FOLDER = Path(__file__).parent        # folder containing app.py
@@ -180,5 +185,41 @@ def transcribe_upload():
     finally:
         os.remove(path)
 
+#verify the google token for signin 
+    
+@app.route("/verify_google_token", methods=["POST"])
+def verify_google_token():
+    try:
+        token = request.json.get("token")
+        if not token:
+            return jsonify({"error": "No token provided"}), 400
+
+        # Verify token using Google’s public keys
+        idinfo = id_token.verify_oauth2_token(
+            token,
+            grequests.Request(),
+            GOOGLE_CLIENT_ID
+        )
+
+        # Token is valid → extract user info
+        user_id = idinfo["sub"]  # Google unique user ID
+        email = idinfo.get("email")
+        name = idinfo.get("name")
+        picture = idinfo.get("picture")
+
+        return jsonify({
+            "message": "Token verified successfully",
+            "user": {
+                "id": user_id,
+                "email": email,
+                "name": name,
+                "picture": picture
+            }
+        })
+
+    except ValueError as e:
+        # Invalid token
+        return jsonify({"error": "Invalid token", "details": str(e)}), 401
+    
 if __name__ == "__main__":
     app.run(debug=True)
