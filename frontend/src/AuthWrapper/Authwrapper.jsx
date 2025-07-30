@@ -1,35 +1,47 @@
-import styles from "./AuthWrapper.module.css";
-import { GoogleLogin } from "@react-oauth/google";
-import { jwtDecode } from "jwt-decode";
+import { useGoogleLogin } from "@react-oauth/google";
+import styles from "./Authwrapper.module.css";
 
-export default function AuthWrapper({ onLogin = () => {} }) {
+export default function Authwrapper({ onLogin }) {
+  console.log("Authwrapper rendered");
 
-  const handleLoginSuccess = async (credentialResponse) => {
-    const token = credentialResponse.credential;
-    const userInfo = jwtDecode(token);
+  const login = useGoogleLogin({
+    flow: "auth-code",
+    scope: "openid email profile",
+    prompt: "consent",
+    onSuccess: async (tokenResponse) => {
+      console.log("we in this bitch now");
+      console.log("✅ Auth code response:", tokenResponse);
 
-    const res = await fetch("http://localhost:5000/verify_google_token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token }), // match Flask
-    });
+      try {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/verify_google_token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: tokenResponse.code }), // must match backend
+        });
 
-    const data = await res.json();
-    if (data.user) {
-      onLogin(data.user); // lift user info up
-    } else {
-      console.error("Login failed:", data.error);
-    }
-  };
+        const data = await res.json();
+        console.log("Backend verify response:", data);
+
+        if (res.ok && data.user) {
+          onLogin(data.user);
+        } else {
+          console.error("Login failed:", data);
+        }
+      } catch (err) {
+        console.error("❌ Fetch error:", err);
+      }
+    },
+    onError: (err) => console.log("❌ Google Login Error:", err),
+  });
 
   return (
     <div className={styles.authWrapper}>
-        <h1>Transcriber</h1>
-        <h2>Please sign in:</h2>
-        <GoogleLogin
-          onSuccess={handleLoginSuccess}
-          onError={() => console.log("Login Failed")}
-        />
+      <h1>Transcriber</h1>
+      <h2>Please sign in:</h2>
+      <button onClick={() => {console.log("▶ Login button clicked"); login(); }} className={styles.googleBtn}>
+        Sign in with Google
+      </button>
     </div>
   );
 }
+// Authwrapper.jsx
