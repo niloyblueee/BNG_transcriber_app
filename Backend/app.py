@@ -7,23 +7,27 @@ from itertools import zip_longest
 import re
 from openai import OpenAI
 from flask_cors import CORS
-from google.oauth2 import id_token
-from google.auth.transport import requests as grequests
-
-
+#from google.oauth2 import id_token
+#from google.auth.transport import requests as grequests
+#from google_auth_oauthlib.flow import Flow
+#from google.auth.transport import requests
+#import requests as pyrequests 
 
 
 load_dotenv()                               # reads .env
 client = OpenAI()                           # auto‑reads OPENAI_API_KEY
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 
 AUDIO_EXTS = {".mp3", ".m4a", ".wav", ".webm", ".ogg"}
 AUDIO_FOLDER = Path(__file__).parent        # folder containing app.py
 
 app = Flask(__name__)
-CORS(app)
+
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+
 
 ASCII_RE = re.compile(r'^[\x00-\x7F]+$')   # “pure ASCII” tester
 
@@ -185,41 +189,54 @@ def transcribe_upload():
     finally:
         os.remove(path)
 
+"""
 #verify the google token for signin 
-    
+
+CLIENT_SECRETS_FILE = Path(__file__).parent / "client_secret.json"
+REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "postmessage")  
+
 @app.route("/verify_google_token", methods=["POST"])
 def verify_google_token():
     try:
-        token = request.json.get("token")
-        if not token:
-            return jsonify({"error": "No token provided"}), 400
+        code = request.json.get("code")
+        if not code:
+            return jsonify({"error": "No code provided"}), 400
 
-        # Verify token using Google’s public keys
+        # Exchange the authorization code for tokens
+        token_url = "https://oauth2.googleapis.com/token"
+        token_data = {
+            "code": code,
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "redirect_uri": REDIRECT_URI,
+            "grant_type": "authorization_code",
+        }
+
+        token_res = pyrequests.post(token_url, data=token_data)
+        if token_res.status_code != 200:
+            return jsonify({"error": "Token exchange failed", "details": token_res.json()}), 400
+
+        tokens = token_res.json()
         idinfo = id_token.verify_oauth2_token(
-            token,
+            tokens["id_token"],
             grequests.Request(),
             GOOGLE_CLIENT_ID
         )
 
-        # Token is valid → extract user info
-        user_id = idinfo["sub"]  # Google unique user ID
-        email = idinfo.get("email")
-        name = idinfo.get("name")
-        picture = idinfo.get("picture")
+        # Extract user info
+        user = {
+            "id": idinfo["sub"],
+            "email": idinfo.get("email"),
+            "name": idinfo.get("name"),
+            "picture": idinfo.get("picture")
+        }
 
-        return jsonify({
-            "message": "Token verified successfully",
-            "user": {
-                "id": user_id,
-                "email": email,
-                "name": name,
-                "picture": picture
-            }
-        })
+        return jsonify({"message": "Token verified successfully", "user": user})
 
-    except ValueError as e:
-        # Invalid token
-        return jsonify({"error": "Invalid token", "details": str(e)}), 401
-    
+    except Exception as e:
+        return jsonify({"error": "Invalid token exchange", "details": str(e)}), 401
+
+"""
+
 if __name__ == "__main__":
     app.run(debug=True)
