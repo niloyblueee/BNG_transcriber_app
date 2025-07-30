@@ -1,22 +1,19 @@
 import { useState } from 'react';
 import './App.css';
 import Header  from './Header';
-import AuthWrapper from './AuthWrapper/Authwrapper.jsx';
+//import Authwrapper from './AuthWrapper/Authwrapper.jsx';
+
+console.log("Browser origin: in app.jsx", window.location.origin);
+
 
 function App() {
   const [transcription, setTranscription] = useState("");
   const [summary, setSummary] = useState("");
   const [keyPoints, setKeyPoints] = useState([]);
   const [selectedFile,setSelectedFile] = useState([])
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState("");
 
-  if (!user) {
-    return (
-      <AuthWrapper onLogin={setUser} />
-    );
-  }
-
-
+  console.log("Env Client ID: in app.jsx", import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
   
   const handleFileChange = (e) => {
@@ -63,37 +60,49 @@ function App() {
   }
 };
 
+if (!user) {
   return (
     <div className="app">
-      <Header user={user} onLogout={() => setUser(null)} />
-      <main>
-        <div className="upload-area">
-          <input type="file" accept="audio/*" onChange={handleFileChange} />
-          <button onClick={handleUpload}>Upload and Transcribe</button>
-        </div>
-        <div className="output-container">
-          <div className="transcription-box">
-            <h2>Transcription</h2>
-            <p>{transcription}</p>
+      <Header user={user} setUser={setUser} onLogout={() => setUser(null)} />
+    </div>
+  );
+}
+
+
+  return (
+    <div className="app">
+      <Header user={user} setUser={setUser} onLogout={() => setUser(null)} />
+
+      {user && (
+        <main>
+          <div className="upload-area">
+            <input type="file" accept="audio/*" onChange={handleFileChange} />
+            <button onClick={handleUpload}>Upload and Transcribe</button>
           </div>
-          <div className="summary-box">
-            <h2>Summary</h2>
-            <p>{summary}</p>
+          <div className="output-container">
+            <div className="transcription-box">
+              <h2>Transcription</h2>
+              <p>{transcription}</p>
+            </div>
+            <div className="summary-box">
+              <h2>Summary</h2>
+              <p>{summary}</p>
+            </div>
+            <div className="keypoints-box">
+              <h2>Key Points</h2>
+              {keyPoints.length ? (
+                <ul>
+                  {keyPoints.map((point, i) => (
+                    <li key={i}>{point}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No key points available.</p>
+              )}
+            </div>
           </div>
-          <div className="keypoints-box">
-            <h2>Key Points</h2>
-            {Array.isArray(keyPoints) && keyPoints.length > 0 ? (
-              <ul>
-                {keyPoints.slice(1).map((point, index) => (
-                  <ol key={index}>{point}</ol>
-                ))}
-              </ul>
-            ) : (
-              <p>No key points available.</p>
-            )}
-          </div>
-        </div>
-      </main>
+        </main>
+      )}
     </div>
   );
 }
