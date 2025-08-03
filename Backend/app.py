@@ -148,7 +148,7 @@ def summarize_with_gpt_mini(text: str) -> tuple[str, list[str]]:
     Returns (summary, keyPoints_list).
     """
     prompt = (
-        "in few lines Summarize the transcription of the audio and give key points in Bengali \n\n"
+        "in few lines Summarize the transcription of the audio and give key points in the language of the transcription \n\n"
         f"টেক্সট:\n{text}"
     )
 
