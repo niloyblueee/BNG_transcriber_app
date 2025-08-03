@@ -12,6 +12,7 @@ function App() {
   const [keyPoints, setKeyPoints] = useState([]);
   const [selectedFile,setSelectedFile] = useState([])
   const [user, setUser] = useState("");
+  const [loading, setLoading] = useState(false); 
 
   console.log("Env Client ID: in app.jsx", import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
@@ -33,6 +34,7 @@ function App() {
  
 
   try {
+    setLoading(true);
     const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/transcribe_local`, {
       method: "POST",
       body: formData, // Don't set headers manually here
@@ -41,7 +43,7 @@ function App() {
 
     const data = await res.json();
 
-
+    setLoading(false);
 
     if (res.ok) {
       setTranscription(data.transcription);
@@ -79,6 +81,22 @@ if (!user) {
             <input type="file" accept="audio/*" onChange={handleFileChange} />
             <button onClick={handleUpload}>Upload and Transcribe</button>
           </div>
+
+          {loading && (
+            <div className="loading-animation">
+              <span>🎤 TRANSCRIBING</span>
+              <span className="dot">.</span>
+              <span className="dot">.</span>
+              <span className="dot">.</span>
+            </div>
+          )}
+
+          {!loading && !transcription && (
+            <div className="no-output">
+              <p>No transcription available. Please upload an audio file.</p>
+            </div>
+          )}
+          
           <div className="output-container">
             <div className="transcription-box">
               <h2>Transcription</h2>
