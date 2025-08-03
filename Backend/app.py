@@ -7,6 +7,8 @@ from itertools import zip_longest
 import re
 from openai import OpenAI
 from flask_cors import CORS
+import mysql.connector
+
 #from google.oauth2 import id_token
 #from google.auth.transport import requests as grequests
 #from google_auth_oauthlib.flow import Flow
@@ -23,10 +25,85 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 AUDIO_EXTS = {".mp3", ".m4a", ".wav", ".webm", ".ogg"}
 AUDIO_FOLDER = Path(__file__).parent        # folder containing app.py
 
+
 app = Flask(__name__)
 
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
+#--------------- Database connection setup ---------------
+# Ensure you have the required environment variables set
+db = mysql.connector.connect(
+    host=os.getenv("MYSQL_HOST"),
+    user=os.getenv("MYSQL_USER"),
+    password=os.getenv("MYSQL_PASSWORD"),
+    database=os.getenv("MYSQL_DATABASE"),
+    port=int(os.getenv("MYSQL_PORT", 3306))
+)
+
+cursor = db.cursor(dictionary=True)
+DEFAULT_CURRENCY = int(os.getenv("DEFAULT_CURRENCY", 100))
+
+#--------------- End of Database connection setup ---------------
+
+#--------------- User login and creation ---------------
+@app.route("/login_user", methods=["POST"])
+def login_user():
+
+    data = request.json
+    email = data.get("email")
+    name = data.get("name")
+
+    if not email :
+        return jsonify({"error": "No email provided"}), 400
+
+    try:
+        cursor.execute(
+            "SELECT * FROM users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+
+        if not user:
+            # User not found, create a new user
+            cursor.execute(
+                "INSERT INTO users (email, name, currency) VALUES (%s, %s, %s)",
+                (email,name, DEFAULT_CURRENCY)
+            )
+            db.commit()
+            user_id = cursor.lastrowid
+            user = cursor.fetchone()
+        return jsonify(user)
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+#--------------- End of user login and creation ---------------
+
+#--------------- Update user currency ---------------
+@app.route("/update_currency", methods=["POST"])
+def update_currency():
+    data = request.json
+    email = data.get("email")
+    new_currency = data.get("currency")
+
+    if not email :
+        return jsonify({"error": "Missing email"}), 400
+
+    elif new_currency is None:
+        return jsonify({"error": "Missing Currency"}), 400
+    
+    
+    try:
+        cursor.execute(
+            "UPDATE users SET currency = %s WHERE email = %s",
+            (new_currency, email)
+        )
+        db.commit()
+
+        return jsonify({"message": "Currency updated successfully"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+#--------------- End of update user currency ---------------
 
 
 ASCII_RE = re.compile(r'^[\x00-\x7F]+$')   # “pure ASCII” tester
