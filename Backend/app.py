@@ -45,7 +45,7 @@ def get_db_connection():
     )
 
 DEFAULT_TOKENS = int(os.getenv("DEFAULT_TOKENS", 100))
-TOKENS_PER_1000_WORDS = 10  # cost setting (adjust as needed)
+TOKENS_PER_1000_WORDS = 200  # cost setting (adjust as needed)
 
 #  ---------- User utilities ----------
 def get_user_from_db(email, name=None):
@@ -232,83 +232,7 @@ def update_currency():
 
 
 # ---------- transcribe local file ----------
-"""
-@app.route("/transcribe_local", methods=["POST"])
-def transcribe_local():
-    
-    #Accepts an uploaded audio file and transcribes it.
-    
-    uploaded_file = request.files.get("file")
-    language = request.form.get("language")  # optional
 
-    email = request.form.get("email")
-    name = request.form.get("name", "")
-
-    if not uploaded_file or uploaded_file.filename == "":
-        return jsonify(error="No file uploaded"), 400
-
-    if not email:
-        return jsonify(error="No email provided"), 400
-
-    user = get_user_from_db(email, name)
-    if not user:
-        return jsonify(error="User lookup failed"), 500
-    
-    filepath = AUDIO_FOLDER / uploaded_file.filename
-    uploaded_file.save(filepath)
-
-    if filepath.suffix.lower() not in AUDIO_EXTS:
-        return jsonify(error="Unsupported file type"), 415
-
-    try:
-        with filepath.open("rb") as f:
-            params = {
-                "model": "gpt-4o-mini-transcribe",
-                "file": f,
-                "prompt": "You are a transcription engine. Transcribe this audio word-for-word, without skipping or summarizing anything, even if it sounds repetitive or unimportant. Use Bangla script where applicable."
-
-            }
-            if language == "en":
-                params["language"] = "en"
-            elif language == "bn":
-                params["language"] = "bn"
-
-            transcript = client.audio.transcriptions.create(**params)
-            raw_text = transcript.text
-            word_count = len(raw_text.split())
-            tokens_needed = max(1, (word_count // 1000) * TOKENS_PER_1000_WORDS)
-
-            if user["tokens"] < tokens_needed:
-                return jsonify(
-                    transcription=None,
-                    summary=None,
-                    keyPoints=None,
-                    error="Not enough tokens. Please buy more to unlock transcription.",
-                    tokens_left=user["tokens"]
-                ), 402
-            
-            #deduct tokens
-            update_user_tokens(user["id"], user["tokens"] - tokens_needed)
-            summary, keyPoints = summarize_with_gpt_mini(raw_text)
-            corrected_text = fix_spelling(raw_text)
-            
-
-            
-
-        return jsonify(
-            transcription=corrected_text,
-            summary=summary,
-            keyPoints=keyPoints,
-            tokens_left=user["tokens"] - tokens_needed
-        )
-
-    except Exception as exc:
-        return jsonify(error=str(exc)), 500
-    
-    finally:
-        if filepath.exists():
-            filepath.unlink()
-"""
 @app.route("/transcribe_local", methods=["POST"])
 def transcribe_local():
     # 1) Read multipart form fields
