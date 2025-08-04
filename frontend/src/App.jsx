@@ -13,6 +13,8 @@ function App() {
   const [selectedFile,setSelectedFile] = useState([])
   const [user, setUser] = useState("");
   const [loading, setLoading] = useState(false); 
+  const [tokens, setTokens] = useState(0);
+
 
   console.log("Env Client ID: in app.jsx", import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
@@ -31,6 +33,8 @@ function App() {
   const formData = new FormData();
   formData.append("file", selectedFile); // MUST match Flask: request.files["file"]
   formData.append("language", "bn");
+  formData.append("email", user.email);
+  formData.append("name", user.name ?? ""); // Optional, if name is not provided
  
 
   try {
@@ -49,6 +53,7 @@ function App() {
       setTranscription(data.transcription);
       setSummary(data.summary);
       setKeyPoints(data.keyPoints);
+      setTokens(data.tokens_left);
 
 
     }
@@ -58,14 +63,18 @@ function App() {
     }
     
   } catch (error) {
-    console.error("failed ==>>", error);
+    console.error("upload error ==>>", error);
   }
 };
 
 if (!user) {
   return (
     <div className="app">
-      <Header user={user} setUser={setUser} onLogout={() => setUser(null)} />
+      <Header user={user} 
+      setUser={setUser}
+      tokens={tokens}
+      setTokens={setTokens}
+      onLogout={() => setUser(null)} />
     </div>
   );
 }
@@ -73,7 +82,11 @@ if (!user) {
 
   return (
     <div className="app">
-      <Header user={user} setUser={setUser} onLogout={() => setUser(null)} />
+      <Header user={user} 
+      setUser={setUser} 
+      tokens={tokens}
+      setTokens={setTokens}
+      onLogout={() => setUser(null)} />
 
       {user && (
         <main>

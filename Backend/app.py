@@ -32,78 +32,56 @@ CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 #--------------- Database connection setup ---------------
 # Ensure you have the required environment variables set
-db = mysql.connector.connect(
-    host=os.getenv("MYSQL_HOST"),
-    user=os.getenv("MYSQL_USER"),
-    password=os.getenv("MYSQL_PASSWORD"),
-    database=os.getenv("MYSQL_DATABASE"),
-    port=int(os.getenv("MYSQL_PORT", 3306))
-)
+def get_db_connection():
+    
+    """Create a database connection using environment variables."""
 
-cursor = db.cursor(dictionary=True)
-DEFAULT_CURRENCY = int(os.getenv("DEFAULT_CURRENCY", 100))
+    return mysql.connector.connect(
+        host=os.getenv("MYSQL_HOST"),
+        user=os.getenv("MYSQL_USER"),
+        password=os.getenv("MYSQL_PASSWORD"),
+        database=os.getenv("MYSQL_DATABASE"),
+        port=int(os.getenv("MYSQL_PORT", 3306))
+    )
 
-#--------------- End of Database connection setup ---------------
+DEFAULT_TOKENS = int(os.getenv("DEFAULT_TOKENS", 100))
+TOKENS_PER_1000_WORDS = 10  # cost setting (adjust as needed)
 
-#--------------- User login and creation ---------------
-@app.route("/login_user", methods=["POST"])
-def login_user():
-
-    data = request.json
-    email = data.get("email")
-    name = data.get("name")
-
-    if not email :
-        return jsonify({"error": "No email provided"}), 400
-
+#  ---------- User utilities ----------
+def get_user_from_db(email, name=None):
+    """Fetch user by email; create with default tokens if not exists."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute(
-            "SELECT * FROM users WHERE email = %s", (email,))
+        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
         user = cursor.fetchone()
 
         if not user:
-            # User not found, create a new user
             cursor.execute(
-                "INSERT INTO users (email, name, currency) VALUES (%s, %s, %s)",
-                (email,name, DEFAULT_CURRENCY)
+                "INSERT INTO users (email, name, tokens) VALUES (%s, %s, %s)",
+                (email, name, DEFAULT_TOKENS)
             )
-            db.commit()
-            user_id = cursor.lastrowid
+            conn.commit()
+            cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
             user = cursor.fetchone()
-        return jsonify(user)
-    
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return user
+    finally:
+        cursor.close()
+        conn.close()
 
-#--------------- End of user login and creation ---------------
-
-#--------------- Update user currency ---------------
-@app.route("/update_currency", methods=["POST"])
-def update_currency():
-    data = request.json
-    email = data.get("email")
-    new_currency = data.get("currency")
-
-    if not email :
-        return jsonify({"error": "Missing email"}), 400
-
-    elif new_currency is None:
-        return jsonify({"error": "Missing Currency"}), 400
-    
-    
+def update_user_tokens(user_id, new_token_count):
+    """Update user’s token balance."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
     try:
-        cursor.execute(
-            "UPDATE users SET currency = %s WHERE email = %s",
-            (new_currency, email)
-        )
-        db.commit()
+        cursor.execute("UPDATE users SET tokens = %s WHERE id = %s", (new_token_count, user_id))
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
 
-        return jsonify({"message": "Currency updated successfully"}), 200
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    
-#--------------- End of update user currency ---------------
+#--------------- End of Database connection setup ---------------
 
 
 ASCII_RE = re.compile(r'^[\x00-\x7F]+$')   # “pure ASCII” tester
@@ -182,19 +160,100 @@ def summarize_with_gpt_mini(text: str) -> tuple[str, list[str]]:
 
 
 
+#--------------- User login and creation ---------------
+@app.route("/login_user", methods=["POST"])
+def login_user():
+    data = request.json
+  
+    email = data.get("email")
+    name = data.get("name")
+
+    if not email:
+        return jsonify({"error": "No email provided"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+
+        if not user:
+            cursor.execute(
+                "INSERT INTO users (email, name, tokens) VALUES (%s, %s, %s)",
+                (email, name, DEFAULT_TOKENS)
+            )
+            conn.commit()
+
+            cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+            user = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "email": user["email"],
+            "name": user["name"],
+            "tokens": user["tokens"]
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+#--------------- End of user login and creation ---------------
+
+#--------------- Update user currency ---------------
+@app.route("/update_currency", methods=["POST"])
+def update_currency():
+    data = request.json
+    email = data.get("email")
+    new_tokens = data.get("tokens")
+
+    if not email :
+        return jsonify({"error": "Missing email"}), 400
+
+    elif new_tokens is None:
+        return jsonify({"error": "Missing tokens"}), 400
+    
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET tokens = %s WHERE email = %s", (new_tokens, email))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({"message": "Tokens updated successfully"}), 200
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+#--------------- End of update user currency ---------------
+
 
 # ---------- transcribe local file ----------
+"""
 @app.route("/transcribe_local", methods=["POST"])
 def transcribe_local():
-    """
-    Accepts an uploaded audio file and transcribes it.
-    """
+    
+    #Accepts an uploaded audio file and transcribes it.
+    
     uploaded_file = request.files.get("file")
     language = request.form.get("language")  # optional
+
+    email = request.form.get("email")
+    name = request.form.get("name", "")
 
     if not uploaded_file or uploaded_file.filename == "":
         return jsonify(error="No file uploaded"), 400
 
+    if not email:
+        return jsonify(error="No email provided"), 400
+
+    user = get_user_from_db(email, name)
+    if not user:
+        return jsonify(error="User lookup failed"), 500
+    
     filepath = AUDIO_FOLDER / uploaded_file.filename
     uploaded_file.save(filepath)
 
@@ -216,17 +275,105 @@ def transcribe_local():
 
             transcript = client.audio.transcriptions.create(**params)
             raw_text = transcript.text
+            word_count = len(raw_text.split())
+            tokens_needed = max(1, (word_count // 1000) * TOKENS_PER_1000_WORDS)
+
+            if user["tokens"] < tokens_needed:
+                return jsonify(
+                    transcription=None,
+                    summary=None,
+                    keyPoints=None,
+                    error="Not enough tokens. Please buy more to unlock transcription.",
+                    tokens_left=user["tokens"]
+                ), 402
+            
+            #deduct tokens
+            update_user_tokens(user["id"], user["tokens"] - tokens_needed)
             summary, keyPoints = summarize_with_gpt_mini(raw_text)
             corrected_text = fix_spelling(raw_text)
+            
+
+            
 
         return jsonify(
             transcription=corrected_text,
             summary=summary,
-            keyPoints=keyPoints)
+            keyPoints=keyPoints,
+            tokens_left=user["tokens"] - tokens_needed
+        )
 
     except Exception as exc:
         return jsonify(error=str(exc)), 500
+    
+    finally:
+        if filepath.exists():
+            filepath.unlink()
+"""
+@app.route("/transcribe_local", methods=["POST"])
+def transcribe_local():
+    # 1) Read multipart form fields
+    email = request.form.get("email")
+    name = request.form.get("name", "")
+    language = request.form.get("language", "bn")
+    uploaded_file = request.files.get("file")
 
+    if not uploaded_file:
+        return jsonify(error="No file uploaded"), 400
+    if not email:
+        return jsonify(error="No email provided"), 400
+
+    # 2) Save to a NamedTemporaryFile (avoids Windows locking)
+    suffix = Path(uploaded_file.filename).suffix
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    try:
+        uploaded_file.save(tmp.name)
+        tmp.close()
+
+        # 3) Validate extension
+        if suffix.lower() not in AUDIO_EXTS:
+            return jsonify(error="Unsupported file type"), 415
+
+        # 4) Fetch or create user, check tokens
+        user = get_user_from_db(email, name)
+        raw_trans = client.audio.transcriptions.create(
+            model="gpt-4o-mini-transcribe",
+            file=open(tmp.name, "rb"),
+            prompt="You are a transcription engine. Transcribe word-for-word...",
+            **({"language": language} if language in ("en","bn") else {})
+        )
+        raw_text = raw_trans.text
+        word_count = len(raw_text.split())
+        tokens_needed = max(1, (word_count // 1000) * TOKENS_PER_1000_WORDS)
+
+        if user["tokens"] < tokens_needed:
+            return jsonify(
+                transcription=None,
+                summary=None,
+                keyPoints=None,
+                error="Not enough tokens. Please buy more.",
+                tokens_left=user["tokens"]
+            ), 402
+
+        # 5) Deduct tokens & post-process
+        update_user_tokens(user["id"], user["tokens"] - tokens_needed)
+        summary, keyPoints = summarize_with_gpt_mini(raw_text)
+        corrected = fix_spelling(raw_text)
+
+        return jsonify(
+            transcription=corrected,
+            summary=summary,
+            keyPoints=keyPoints,
+            tokens_left=user["tokens"] - tokens_needed
+        )
+
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
 
 # ---------- fallback upload endpoint ----------
 @app.route("/transcribe", methods=["POST"])
