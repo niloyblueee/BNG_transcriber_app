@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import './App.css';
 import Header  from './Header';
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+
 //import Authwrapper from './AuthWrapper/Authwrapper.jsx';
 
 console.log("Browser origin: in app.jsx", window.location.origin);
@@ -14,7 +18,7 @@ function App() {
   const [user, setUser] = useState("");
   const [loading, setLoading] = useState(false); 
   const [tokens, setTokens] = useState(0);
-
+  
 
   console.log("Env Client ID: in app.jsx", import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
@@ -27,6 +31,7 @@ function App() {
   const handleUpload = async () => {
   if (!selectedFile) {
     console.error("No file selected");
+    setModalMessage("Please select a file to upload.");
     return;
   }
 
@@ -46,7 +51,7 @@ function App() {
   
 
     const data = await res.json();
-
+    
     setLoading(false);
 
     if (res.ok) {
@@ -55,14 +60,19 @@ function App() {
       setKeyPoints(data.keyPoints);
       setTokens(data.tokens_left);
 
-
     }
-    
+    else if (res.status === 402) {
+      toast.error("Not enough tokens, please recharge.");
+    }
+
     else {
-      console.error("Transcription Failed".data.error)
+      toast.error(`Transcription failed: ${data.error || "Unknown error"}`);
+      console.error("Transcription error:", data.error);
     }
     
   } catch (error) {
+    setLoading(false);
+    setModalMessage("Upload error: " + error.message);
     console.error("upload error ==>>", error);
   }
 };
@@ -87,6 +97,7 @@ if (!user) {
       tokens={tokens}
       setTokens={setTokens}
       onLogout={() => setUser(null)} />
+      <ToastContainer position="top-center" autoClose={3000} />
 
       {user && (
         <main>
