@@ -8,6 +8,7 @@ import re
 from openai import OpenAI
 from flask_cors import CORS
 import mysql.connector
+import math
 
 #from google.oauth2 import id_token
 #from google.auth.transport import requests as grequests
@@ -265,9 +266,15 @@ def transcribe_local():
             prompt="You are a transcription engine. Transcribe word-for-word...",
             **({"language": language} if language in ("en","bn") else {})
         )
-        raw_text = raw_trans.text
+        raw_text = raw_trans.text.strip()
+
+        if not raw_text:
+            return jsonify(error="Transcription failed or empty",
+                           tokens_left=user["tokens"]), 500
+        
+
         word_count = len(raw_text.split())
-        tokens_needed = max(1, (word_count // 1000) * TOKENS_PER_1000_WORDS)
+        tokens_needed = math.ceil(word_count / 1000) * TOKENS_PER_1000_WORDS
 
         if user["tokens"] < tokens_needed:
             return jsonify(
@@ -279,7 +286,10 @@ def transcribe_local():
             ), 402
 
         # 5) Deduct tokens & post-process
-        update_user_tokens(user["id"], user["tokens"] - tokens_needed)
+        new_balance = user["tokens"] - tokens_needed
+        update_user_tokens(user["id"], new_balance)
+
+        # 6) Summarize and fix spelling
         summary, keyPoints = summarize_with_gpt_mini(raw_text)
         corrected = fix_spelling(raw_text)
 
@@ -287,7 +297,7 @@ def transcribe_local():
             transcription=corrected,
             summary=summary,
             keyPoints=keyPoints,
-            tokens_left=user["tokens"] - tokens_needed
+            tokens_left=new_balance
         )
 
     except Exception as e:
@@ -307,11 +317,18 @@ def transcribe_upload():
 
     language = request.form.get("language")
     audio_file = request.files["audio"]
+    email = request.form.get("email")
+    name = request.form.get("name", "")
+
+    if not email:
+        return jsonify(error="No email provided"), 400
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".tmp") as tmp:
         audio_file.save(tmp.name)
         path = tmp.name
     try:
+        user = get_user_from_db(email, name)
+
         with open(path, "rb") as f:
             params = {"model": "gpt-4o-mini-transcribe", "file": f}
             if language == "en":
@@ -320,17 +337,38 @@ def transcribe_upload():
                 params["language"] = "bn"
 
             transcript = client.audio.transcriptions.create(**params)
-            raw_text = transcript.text
-            summary, keyPoints = summarize_with_gpt_mini(raw_text)
-            corrected_text = fix_spelling(transcript.text)
+            raw_text = transcript.text.strip()
+
+        if not raw_text:
+            return jsonify(error="Transcription failed, no text generated",
+                           tokens_left=user["tokens"]), 500
+
+        # Count words and calculate tokens
+        word_count = len(raw_text.split())
+        tokens_needed = math.ceil(word_count / 1000) * TOKENS_PER_1000_WORDS
+
+        if user["tokens"] < tokens_needed:
+            return jsonify(
+                transcription=None,
+                summary=None,
+                keyPoints=None,
+                error="Not enough tokens. Please buy more.",
+                tokens_left=user["tokens"]
+            ), 402
+
+        # Deduct tokens only after success
+        new_balance = user["tokens"] - tokens_needed
+        update_user_tokens(user["id"], new_balance)
+
+        summary, keyPoints = summarize_with_gpt_mini(raw_text)
+        corrected_text = fix_spelling(raw_text)
+
         return jsonify(
-                transcription=corrected_text,
-                summary=summary,
-                keyPoints=keyPoints
-            )            
-        
-        #return jsonify(transcription=transcript.text)
-    
+            transcription=corrected_text,
+            summary=summary,
+            keyPoints=keyPoints,
+            tokens_left=new_balance
+        )
 
     except Exception as e:
         return jsonify(error=str(e)), 500
