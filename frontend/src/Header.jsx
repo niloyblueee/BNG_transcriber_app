@@ -13,6 +13,7 @@ function Header({ user, setUser, onLogout, tokens, setTokens }) {
     const token = credentialResponse.credential;
     const userInfo = jwtDecode(token);
     setUser(userInfo);
+    console.log("User info from Google:", userInfo);
 
     try {
       const res = await fetch(

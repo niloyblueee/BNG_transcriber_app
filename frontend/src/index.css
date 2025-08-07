@@ -98,8 +98,57 @@ button:focus-visible {
   animation-delay: 0.6s;
 }
 
+.output-container {
+  padding-bottom: 80px; /* Give enough room for the ad */
+}
+
+
+
+
 @keyframes blink {
   0%, 20% { opacity: 0; }
   50% { opacity: 1; }
   100% { opacity: 0; }
+}
+
+@media screen and (max-width: 768px) {
+  .app-header p {
+    font-size: 1.4em;
+  }
+
+  h1 {
+    font-size: 2em;
+  }
+
+.user-avatar-fallback {
+  width: 40px;
+  height: 40px;
+  background-color: #ccc;
+  color: white;
+  font-weight: bold;
+  font-size: 1.2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-left: 10px;
+}
+
+
+  .account-section {
+    position: static;
+    margin-top: 1rem;
+    text-align: center;
+  }
+
+  .user-avatar {
+    width: 30px;
+    height: 30px;
+  }
+
+  .loading-animation {
+    font-size: 1.2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }

@@ -1,0 +1,25 @@
+
+.footerAd {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  background-color: #f7f7f7;
+  padding: 5px 0;
+  border-top: 1px solid #ccc;
+  z-index: 1000;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.adImage {
+  height: 60px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+@media screen and (max-width: 480px) {
+  .adImage {
+    height: 45px;
+  }
+}

@@ -3,7 +3,7 @@ import './App.css';
 import Header  from './Header';
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import FooterAd from './Footer/FooterAd';
 
 //import Authwrapper from './AuthWrapper/Authwrapper.jsx';
 
@@ -145,6 +145,7 @@ if (!user) {
           </div>
         </main>
       )}
+      <FooterAd />
     </div>
   );
 }
