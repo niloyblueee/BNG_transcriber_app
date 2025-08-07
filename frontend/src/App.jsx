@@ -102,7 +102,7 @@ if (!user) {
       {user && (
         <main>
           <div className="upload-area">
-            <input type="file" accept="audio/*,video/*" onChange={handleFileChange} />
+            <input type="file" accept="audio/*,video/*, .mp4, .m4a, .acc" onChange={handleFileChange} />
             <button onClick={handleUpload}>Upload and Transcribe</button>
           </div>
 
