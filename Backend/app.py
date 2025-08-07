@@ -287,7 +287,9 @@ def transcribe_local():
         
 
         word_count = len(raw_text.split())
-        tokens_needed = math.ceil(word_count / 1000) * TOKENS_PER_1000_WORDS
+        
+        tokens_needed = math.ceil(word_count * (TOKENS_PER_1000_WORDS / 1000))
+
 
         if user["tokens"] < tokens_needed:
             return jsonify(
