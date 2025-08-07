@@ -1,4 +1,5 @@
 import os
+from flask import Flask, request, jsonify, send_from_directory
 from pathlib import Path
 import tempfile
 from flask import Flask, request, jsonify, render_template_string
@@ -27,9 +28,21 @@ AUDIO_EXTS = {".mp3", ".m4a", ".wav", ".webm", ".ogg"}
 AUDIO_FOLDER = Path(__file__).parent        # folder containing app.py
 
 
-app = Flask(__name__)
+app = Flask(__name__,  static_folder="dist", static_url_path="")
 
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+
+@app.route("/")
+def serve_index():
+    return send_from_directory(app.static_folder, "index.html")
+
+@app.route("/<path:path>")
+def serve_static(path):
+    return send_from_directory(app.static_folder, path)
+
+
+
 
 #--------------- Database connection setup ---------------
 # Ensure you have the required environment variables set
