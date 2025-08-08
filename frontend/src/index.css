@@ -3,7 +3,7 @@
   
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #05032256;
+  background-color: #040316;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -126,44 +126,31 @@ button:focus-visible {
   100% { opacity: 0; }
 }
 
+/* Mobile adjustments */
+/* Mobile adjustments */
 @media screen and (max-width: 768px) {
-  .app-header p {
-    font-size: 1.4em;
-  }
-
-  h1 {
-    font-size: 2em;
-  }
-
-.user-avatar-fallback {
-  width: 40px;
-  height: 40px;
-  background-color: #ccc;
-  color: white;
-  font-weight: bold;
-  font-size: 1.2em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  margin-left: 10px;
-}
-
-
   .account-section {
     position: static;
-    margin-top: 1rem;
+    margin-top: 0.5rem; /* closer to heading */
     text-align: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25em; /* very compact */
   }
 
-  .user-avatar {
-    width: 30px;
-    height: 30px;
+  .account-section img {
+    width: 28px; /* slightly smaller avatar */
+    height: 28px;
   }
 
-  .loading-animation {
-    font-size: 1.2rem;
-    flex-wrap: wrap;
-    justify-content: center;
+  .account-section span {
+    font-size: 0.95em; /* slightly smaller text */
+    line-height: 1.1;
+  }
+
+  .account-section button {
+    font-size: 0.85em; /* smaller button text */
+    padding: 0.4em 0.8em; /* smaller button height */
+    margin-top: 0.3em;
   }
 }
