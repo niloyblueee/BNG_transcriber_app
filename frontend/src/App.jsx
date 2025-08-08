@@ -5,6 +5,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import FooterAd from './Footer/FooterAd';
 import Particles from './Particles';
+import TargetCursor from './TargetCursor';
 
 //import Authwrapper from './AuthWrapper/Authwrapper.jsx';
 
@@ -82,25 +83,35 @@ if (!user) {
   return (
 
     <>
-    <div className='particle-background'>
-      <Particles
-        particleColors={['#ffffff', '#ffffff']}
-        particleCount={200}
-        particleSpread={10}
-        speed={0.1}
-        particleBaseSize={100}
-        moveParticlesOnHover={true}
-        alphaParticles={false}
-        disableRotation={false}
+
+    <div style={{ position: "relative", minHeight: "100vh", zIndex: 2 }}> 
+
+      <TargetCursor 
+        spinDuration={2}
+        hideDefaultCursor={true}
+        style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 9999 }}
       />
-    </div>
-    
-      <div className="app">
-        <Header user={user} 
-        setUser={setUser}
-        tokens={tokens}
-        setTokens={setTokens}
-        onLogout={() => setUser(null)} />
+
+      <div className='particle-background'>
+        <Particles
+          particleColors={['#ffffff', '#ffffff']}
+          particleCount={200}
+          particleSpread={10}
+          speed={0.1}
+          particleBaseSize={100}
+          moveParticlesOnHover={true}
+          alphaParticles={false}
+          disableRotation={false}
+        />
+      </div>
+      
+        <div className="app">
+          <Header user={user} 
+          setUser={setUser}
+          tokens={tokens}
+          setTokens={setTokens}
+          onLogout={() => setUser(null)} />
+        </div>
       </div>
    </>
 
@@ -109,6 +120,15 @@ if (!user) {
 
 return (
   <>
+
+  <div style={{ position: "relative", minHeight: "100vh", zIndex: 2 }}> 
+
+      <TargetCursor 
+        spinDuration={2}
+        hideDefaultCursor={true}
+        style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 9999 }}
+      />
+    
 
     <div className="particle-background">
       <Particles
@@ -135,8 +155,8 @@ return (
       {user && (
         <main>
           <div className="upload-area">
-            <input type="file" accept="audio/*,video/*, .mp4, .m4a, .acc, audio/mp4, audio/aac, audio/x-m4a, audio/mp3, audio/x-mp3" onChange={handleFileChange} />
-            <button onClick={handleUpload}>Upload and Transcribe</button>
+            <input className="cursor-target" type="file" accept="audio/*,video/*, .mp4, .m4a, .acc, audio/mp4, audio/aac, audio/x-m4a, audio/mp3, audio/x-mp3" onChange={handleFileChange} />
+            <button className="cursor-target" onClick={handleUpload}>Upload and Transcribe</button>
           </div>
 
           {loading && (
@@ -181,6 +201,7 @@ return (
 
       <FooterAd />
     </div>
+  </div>
   </>
 );
 }

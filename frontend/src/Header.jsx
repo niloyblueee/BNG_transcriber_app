@@ -58,7 +58,7 @@ function Header({ user, setUser, onLogout, tokens, setTokens }) {
             <span>💰 {tokens}</span>
             <img src={user?.picture} alt="User Avatar" className="user-avatar"/>
             <span className="email">{user?.email}</span>
-            <button onClick={onLogout}>Log out</button>
+            <button className="cursor-target" onClick={onLogout}>Log out</button>
           </>
           
         ) : (
