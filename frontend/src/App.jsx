@@ -6,6 +6,8 @@ import "react-toastify/dist/ReactToastify.css";
 import FooterAd from './Footer/FooterAd';
 import Particles from './Particles';
 import TargetCursor from './TargetCursor';
+import ClickSpark from './ClickSpark';
+
 
 //import Authwrapper from './AuthWrapper/Authwrapper.jsx';
 
@@ -83,6 +85,13 @@ if (!user) {
   return (
 
     <>
+    
+    <ClickSpark 
+    sparkColor='#fff'
+    sparkSize={10}
+    sparkRadius={15}
+    sparkCount={8}
+    duration={400}>
 
     <div style={{ position: "relative", minHeight: "100vh", zIndex: 2 }}> 
 
@@ -113,20 +122,30 @@ if (!user) {
           onLogout={() => setUser(null)} />
         </div>
       </div>
+      </ClickSpark>
    </>
 
   );
 }
 
 return (
-  <>
 
-  <div style={{ position: "relative", minHeight: "100vh", zIndex: 2 }}> 
+
+  <>
+  <ClickSpark 
+    sparkColor='#fff'
+    sparkSize={10}
+    sparkRadius={15}
+    sparkCount={8}
+    duration={400}>
+
+
+    <div style={{ position: "relative", minHeight: "100vh", zIndex: 2 }}> 
 
       <TargetCursor 
         spinDuration={2}
         hideDefaultCursor={true}
-        style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 9999 }}
+        style={{ position: "fixed", top: 0, left: 0, width: "50vw", height: "50vh", zIndex: 9999 }}
       />
     
 
@@ -202,6 +221,7 @@ return (
       <FooterAd />
     </div>
   </div>
+  </ClickSpark>
   </>
 );
 }
