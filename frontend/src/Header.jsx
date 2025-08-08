@@ -55,10 +55,16 @@ function Header({ user, setUser, onLogout, tokens, setTokens }) {
       <div className="account-section">
         {user ? (
           <>
-            <span>👤 {user?.name}</span>
-            <span>💰 {tokens}</span>
+            <span className="tokens">💰 {tokens}</span>
+            <button className="cursor-target">Buy Tokens</button>
+            
+            <br />
             <img src={user?.picture} alt="User Avatar" className="user-avatar"/>
+            <span> {user?.name}</span>
+            
+            <br />
             <span className="email">{user?.email}</span>
+            <br />
             <button className="cursor-target" onClick={onLogout}>Log out</button>
           </>
           
