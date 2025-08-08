@@ -2,6 +2,7 @@
 import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
 import React from "react";
+import TextType from "./TextType";
 
 // Header component for the application
 // Displays user information and allows login/logout functionality
@@ -49,7 +50,7 @@ function Header({ user, setUser, onLogout, tokens, setTokens }) {
   return (
     <header className="app-header">
       <h1>Transcriber</h1>
-      <p>Transcribe your voice notes ALMOST immediately</p>
+      <TextType text={["Transcribe your voice notes ALMOST immediately"]} as="p" loop={true} />
 
       <div className="account-section">
         {user ? (
