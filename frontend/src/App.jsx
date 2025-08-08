@@ -4,6 +4,7 @@ import Header  from './Header';
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import FooterAd from './Footer/FooterAd';
+import Particles from './Particles';
 
 //import Authwrapper from './AuthWrapper/Authwrapper.jsx';
 
@@ -31,7 +32,7 @@ function App() {
   const handleUpload = async () => {
   if (!selectedFile) {
     console.error("No file selected");
-    setModalMessage("Please select a file to upload.");
+    //setModalMessage("Please select a file to upload."); // This was commented out in your original code
     return;
   }
 
@@ -72,31 +73,63 @@ function App() {
     
   } catch (error) {
     setLoading(false);
-    setModalMessage("Upload error: " + error.message);
+    //setModalMessage("Upload error: " + error.message); // This was commented out in your original code
     console.error("upload error ==>>", error);
   }
 };
 
 if (!user) {
   return (
-    <div className="app">
-      <Header user={user} 
-      setUser={setUser}
-      tokens={tokens}
-      setTokens={setTokens}
-      onLogout={() => setUser(null)} />
+
+    <>
+    <div className='particle-background'>
+      <Particles
+        particleColors={['#ffffff', '#ffffff']}
+        particleCount={200}
+        particleSpread={10}
+        speed={0.1}
+        particleBaseSize={100}
+        moveParticlesOnHover={true}
+        alphaParticles={false}
+        disableRotation={false}
+      />
     </div>
+    
+      <div className="app">
+        <Header user={user} 
+        setUser={setUser}
+        tokens={tokens}
+        setTokens={setTokens}
+        onLogout={() => setUser(null)} />
+      </div>
+   </>
+
   );
 }
 
+return (
+  <>
 
-  return (
-    <div className="app">
+    <div className="particle-background">
+      <Particles
+        particleColors={['#ffffff', '#ffffff']}
+        particleCount={200}
+        particleSpread={10}
+        speed={0.1}
+        particleBaseSize={100}
+        moveParticlesOnHover={true}
+        alphaParticles={false}
+        disableRotation={false}
+      />
+    </div>
+
+    {/* Foreground App Content */}
+    <div className="app-content">
       <Header user={user} 
-      setUser={setUser} 
-      tokens={tokens}
-      setTokens={setTokens}
-      onLogout={() => setUser(null)} />
+        setUser={setUser} 
+        tokens={tokens}
+        setTokens={setTokens}
+        onLogout={() => setUser(null)} />
       <ToastContainer position="top-center" autoClose={3000} />
 
       {user && (
@@ -120,7 +153,7 @@ if (!user) {
               <p>No transcription available. Please upload an audio file.</p>
             </div>
           )}
-          
+
           <div className="output-container">
             <div className="transcription-box">
               <h2>Transcription</h2>
@@ -145,9 +178,11 @@ if (!user) {
           </div>
         </main>
       )}
+
       <FooterAd />
     </div>
-  );
+  </>
+);
 }
 
 export default App;

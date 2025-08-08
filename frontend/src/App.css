@@ -1,10 +1,36 @@
 #root {
-  max-width: 1280px;
   margin: 0 auto;
-  padding: 1rem;
   text-align: center;
   width: 100%;
 }
+/* App.css */
+
+
+/* The particle background layer */
+.particle-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1; /* This is the key: it places the particles behind everything else */
+}
+
+/* The foreground content layer */
+.app-content {
+  position: relative;
+  z-index: 1; /* This ensures your content is on top of the particles */
+  width: 100%;
+  height: 100%;
+  
+  /* Use flexbox to center content or organize it as needed */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+
 
 @media screen and (max-width: 600px) {
   #root {
