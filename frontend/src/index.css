@@ -1,39 +1,26 @@
 :root {
   font-family: 'Times New Roman', Avenir, Helvetica, Arial, sans-serif;
-  
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
   background-color: #040316;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-.keypoints-box p {
-  font-size: 1.2em;
-  line-height: 1.5;
-  margin: 0.5em 0;
-
-}
-
-.app-header {
-  text-align: center;
-
-}
-.app-header p{
-  text-align: center;
-  font-size: 2.2em; ;
-  line-height: 1.2em ;
-}
-
 body {
   margin: 0;
   display: flex;
   place-items: center;
+  min-height: 100vh;
+  width: 100%;
 }
 
+#root {
+    width: 100%;
+    padding: 1rem;
+}
 
 
 h1 {
@@ -60,97 +47,121 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-.keypoints-box{
-  text-align: justify;
-  
+/* --- Header Styling --- */
 
+.app-header {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.title-section {
+  text-align: center;
+  /* Add some padding to ensure it doesn't overlap with the top bar */
+  padding-top: 2rem;
+}
+
+.app-header p {
+  text-align: center;
+  font-size: 2.2em;
+  line-height: 1.2em;
+}
+
+/* --- Unified Header Layout for ALL screen sizes --- */
+
+.header-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  /* Set a minimum height to avoid layout shifts when logging in/out */
+  min-height: 50px;
+}
+
+.token-section {
+  display: flex;
+  align-items: center; /* Align items horizontally */
+  gap: 12px; /* Add some space between the tokens and the button */
+}
+
+.token-section .tokens {
+  font-size: 1.1em;
+  font-weight: bold;
+}
+
+.token-section .buy-tokens-btn {
+  font-size: 0.8em;
+  padding: 0.4em 0.8em;
+  background-color: #2a2a2a;
 }
 
 .account-section {
-  position: absolute;
-  right: 20px;
-  top: 20px;
+  position: relative; /* Needed for profile menu positioning */
 }
+
 .user-avatar {
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  margin-left: 10px;
-  
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s; /* Transition all properties */
 }
 
-.account-section {
+.user-avatar:hover {
+  border-color: #646cff;
+}
+
+/* Profile Dropdown Menu */
+.profile-menu {
   position: absolute;
-  right: 20px;
-  top: 20px;
+  top: 120%; /* Position it just below the avatar */
+  right: 0;
+  width: 220px;
+  background-color: #2c2c2e; /* iOS-like dark background */
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.1px;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-
-
-.loading-animation {
-  font-size: 1.5rem;
+.profile-menu .profile-name {
   font-weight: bold;
-  color: #007bff;
-  margin: 1rem 0;
-  display: flex;
-  align-items: center;
+  margin: 0;
 }
 
-.loading-animation .dot {
-  animation: blink 1.5s infinite;
-  margin-left: 3px;
+.profile-menu .profile-email {
+  font-size: 0.9em;
+  color: #aaa;
+  margin: 0;
+  word-break: break-all; /* Prevents long emails from overflowing */
 }
 
-.loading-animation .dot:nth-child(2) {
-  animation-delay: 0.3s;
+.profile-menu .logout-btn {
+  margin-top: 8px;
+  background-color: #3a3a3c;
+  border: none;
 }
-
-.loading-animation .dot:nth-child(3) {
-  animation-delay: 0.6s;
-}
-
-.output-container {
-  padding-bottom: 80px; /* Give enough room for the ad */
+.profile-menu .logout-btn:hover {
+  background-color: #4a4a4c;
 }
 
 
-
-
-@keyframes blink {
-  0%, 20% { opacity: 0; }
-  50% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-/* Mobile adjustments */
-/* Mobile adjustments */
-@media screen and (max-width: 768px) {
-  .account-section {
-    position: static;
-    margin-top: 0.5rem; /* closer to heading */
-    text-align: center;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.25em; /* very compact */
+/* --- Desktop-Specific Adjustments --- */
+@media screen and (min-width: 769px) {
+  /* Make the user avatar bigger on desktop */
+  .user-avatar {
+    width: 50px;
+    height: 50px;
   }
 
-  .account-section img {
-    width: 28px; /* slightly smaller avatar */
-    height: 28px;
+  .token-section .tokens {
+    font-size: 1.2em;
   }
 
-  .account-section span {
-    font-size: 0.95em; /* slightly smaller text */
-    line-height: 1.1;
-  }
-
-  .account-section button {
-    font-size: 0.85em; /* smaller button text */
-    padding: 0.4em 0.8em; /* smaller button height */
-    margin-top: 0.3em;
+  .token-section .buy-tokens-btn {
+    font-size: 0.9em;
   }
 }

@@ -1,15 +1,18 @@
-
 import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import TextType from "./TextType";
 
 // Header component for the application
-// Displays user information and allows login/logout functionality
-// Uses Google OAuth for authentication
-// Fetches user tokens from the backend after login
+// Displays user information, login/logout, and token count.
+// Features a responsive design for mobile and desktop views.
 
 function Header({ user, setUser, onLogout, tokens, setTokens }) {
+  // State to manage the visibility of the profile dropdown menu
+  const [isProfileOpen, setProfileOpen] = useState(false);
+  // Ref to detect clicks outside of the profile menu to close it
+  const profileRef = useRef(null);
+
   const handleSuccess = async (credentialResponse) => {
     const token = credentialResponse.credential;
     const userInfo = jwtDecode(token);
@@ -41,41 +44,83 @@ function Header({ user, setUser, onLogout, tokens, setTokens }) {
   };
 
   const handleLogout = () => {
+    setProfileOpen(false); // Close menu on logout
     setUser(null);
     setTokens(0);
     onLogout();
   };
 
+  // Effect to handle clicks outside the profile menu to close it
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setProfileOpen(false);
+      }
+    }
+    // Add event listener when the component mounts
+    document.addEventListener("mousedown", handleClickOutside);
+    // Clean up the event listener when the component unmounts
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [profileRef]);
 
   return (
     <header className="app-header">
-      <h1>Transcriber</h1>
-      <TextType text={["Transcribe your voice notes ALMOST immediately"]} as="p" loop={true} />
+      {/* This top bar contains elements that will be positioned left and right */}
+      <div className="header-top-bar">
+        <div className="token-section">
+          {user && (
+            <>
+              <span className="tokens">💰 {tokens}</span>
+              {/* Added cursor-target back to this button */}
+              <button className="buy-tokens-btn cursor-target">Buy Tokens</button>
+            </>
+          )}
+        </div>
 
-      <div className="account-section">
-        {user ? (
-          <>
-            <span className="tokens">💰 {tokens}</span>
-            <button className="cursor-target">Buy Tokens</button>
-            
-            <br />
-            <img src={user?.picture} alt="User Avatar" className="user-avatar"/>
-            <span> {user?.name}</span>
-            
-            <br />
-            <span className="email">{user?.email}</span>
-            <br />
-            <button className="cursor-target" onClick={onLogout}>Log out</button>
-          </>
-          
-        ) : (
-          <GoogleLogin
-            onSuccess={handleSuccess}
-            onError={() => {
-              console.error("Login Failed");
-            }}
-          />
-        )}
+        <div className="account-section">
+          {user ? (
+            // Use the ref here to track the profile section area
+            <div className="profile-section" ref={profileRef}>
+              <img
+                src={user.picture}
+                alt="User Avatar"
+                className="user-avatar"
+                onClick={() => setProfileOpen(!isProfileOpen)} // Toggle menu on click
+              />
+              {/* Conditionally render the profile menu */}
+              {isProfileOpen && (
+                <div className="profile-menu">
+                  <span className="profile-name">{user.name}</span>
+                  <span className="profile-email">{user.email}</span>
+                   {/* Added cursor-target back to this button */}
+                  <button className="logout-btn cursor-target" onClick={handleLogout}>
+                    Log out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            // Display Google Login button if no user is logged in
+            <GoogleLogin
+              onSuccess={handleSuccess}
+              onError={() => {
+                console.error("Login Failed");
+              }}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Main title and subtitle, including your TextType component */}
+      <div className="title-section">
+        <h1>Transcriber</h1>
+        <TextType
+          text={["Transcribe your voice notes ALMOST immediately"]}
+          as="p"
+          loop={true}
+        />
       </div>
     </header>
   );
