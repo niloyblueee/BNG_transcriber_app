@@ -6,7 +6,7 @@ import Particles from './styling/Particles.js';
 const PackagePage = () => {
     return (
         <>
-            <div style={{ width: '100%', height: '800px', position: 'relative' }}>
+            <div style={{ width: '100%', height: '800px', position: 'relative', alignItems: 'center' }}>
                 <Particles
                     particleColors={['#ffffff', '#ffffff']}
                     particleCount={200}
@@ -18,9 +18,9 @@ const PackagePage = () => {
                     disableRotation={false}
                 />
             </div >
-            <div style={{ top: "0", position: "absolute", zIndex: 1, alignItems: "center" }}>
+            <div style={{ top: "0", position: "absolute", zIndex: 1, alignItems: "center", width: "100%", height: "100%" }}>
                 <GradientText
-                    colors={["#ffffffff", "#929292ff", "#ffffffff", "#a1a1a1ff", "#ffffffff"]}
+                    colors={["#ffffffff", "#737373ff", "#ffffffff", "#717171ff", "#ffffffff"]}
                     animationSpeed={3}
                     showBorder={false}
                     className="custom-class"
