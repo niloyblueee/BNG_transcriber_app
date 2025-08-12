@@ -4,10 +4,10 @@ import React, { useState, useEffect, useRef } from "react";
 import TextType from "./TextType";
 
 // Header component for the application
-// Displays user information, login/logout, and token count.
+// Displays user information, login/logout, and time balance.
 // Features a responsive design for mobile and desktop views.
 
-function Header({ user, setUser, onLogout, tokens, setTokens }) {
+function Header({ user, setUser, onLogout, seconds, setSeconds }) {
   // State to manage the visibility of the profile dropdown menu
   const [isProfileOpen, setProfileOpen] = useState(false);
   // Ref to detect clicks outside of the profile menu to close it
@@ -34,7 +34,7 @@ function Header({ user, setUser, onLogout, tokens, setTokens }) {
       );
       const data = await res.json();
       if (res.ok) {
-        setTokens(data.tokens);
+        setSeconds(data.free_seconds); // Changed from 'tokens' to 'free_seconds'
       } else {
         console.error("Login error:", data.error);
       }
@@ -46,7 +46,7 @@ function Header({ user, setUser, onLogout, tokens, setTokens }) {
   const handleLogout = () => {
     setProfileOpen(false); // Close menu on logout
     setUser(null);
-    setTokens(0);
+    setSeconds(0); // Changed from 'setTokens' to 'setSeconds'
     onLogout();
   };
 
@@ -72,9 +72,10 @@ function Header({ user, setUser, onLogout, tokens, setTokens }) {
         <div className="token-section">
           {user && (
             <>
-              <span className="tokens">💰 {tokens}</span>
-              {/* Added cursor-target back to this button */}
-              <button className="buy-tokens-btn cursor-target">Buy Tokens</button>
+              {/* Displaying seconds instead of tokens */}
+              <span className="tokens">💰 {seconds} sec</span> 
+              {/* Button text changed from "Buy Tokens" to "Buy Time" */}
+              <button className="buy-tokens-btn cursor-target">Buy Time</button>
             </>
           )}
         </div>

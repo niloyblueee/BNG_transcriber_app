@@ -21,7 +21,7 @@ function App() {
   const [selectedFile,setSelectedFile] = useState([])
   const [user, setUser] = useState("");
   const [loading, setLoading] = useState(false); 
-  const [tokens, setTokens] = useState(0);
+  const [seconds, setSeconds] = useState(0);
   
 
   console.log("Env Client ID: in app.jsx", import.meta.env.VITE_GOOGLE_CLIENT_ID);
@@ -62,11 +62,11 @@ function App() {
       setTranscription(data.transcription);
       setSummary(data.summary);
       setKeyPoints(data.keyPoints);
-      setTokens(data.tokens_left);
+      setSeconds(data.free_seconds_left); // Changed from `tokens_left` to `free_seconds_left`
 
     }
     else if (res.status === 402) {
-      toast.error("Not enough tokens, please recharge.");
+      toast.error("Not enough seconds, please recharge.");
     }
 
     else {
@@ -117,8 +117,8 @@ if (!user) {
         <div className="app">
           <Header user={user} 
           setUser={setUser}
-          tokens={tokens}
-          setTokens={setTokens}
+          seconds={seconds}
+          setSeconds={setSeconds}
           onLogout={() => setUser(null)} />
         </div>
       </div>
@@ -166,8 +166,8 @@ return (
     <div className="app-content">
       <Header user={user} 
         setUser={setUser} 
-        tokens={tokens}
-        setTokens={setTokens}
+        seconds={seconds}
+        setSeconds={setSeconds}
         onLogout={() => setUser(null)} />
       <ToastContainer position="top-center" autoClose={3000} />
 
