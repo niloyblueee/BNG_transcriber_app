@@ -11,27 +11,42 @@ from flask_cors import CORS
 import mysql.connector
 import math
 
-#from google.oauth2 import id_token
-#from google.auth.transport import requests as grequests
-#from google_auth_oauthlib.flow import Flow
-#from google.auth.transport import requests
-#import requests as pyrequests 
+# Re-added the requests import
+import requests as pyrequests 
+from mutagen.mp3 import MP3
+from mutagen.mp4 import MP4
+from mutagen.wave import WAVE
+from mutagen.oggvorbis import OggVorbis
 
 
-load_dotenv()                               # reads .env
-client = OpenAI()                           # auto‑reads OPENAI_API_KEY
+# pip install pydub requests
+# make sure ffmpeg is installed and on PATH
+import os
+import tempfile
+import math
+import difflib
+from pydub import AudioSegment, silence
+import requests
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+ELEVEN_STT = "https://api.elevenlabs.io/v1/speech-to-text"
+
+load_dotenv()
+client = OpenAI()
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+ELEVEN_API_KEY = os.getenv("ELEVEN_API_KEY")
+if not ELEVEN_API_KEY:
+    raise RuntimeError("ELEVEN_API_KEY is not set. Set the ELEVEN_API_KEY env var.")
 
 AUDIO_EXTS = {".mp3", ".m4a", ".wav", ".webm", ".ogg"}
-AUDIO_FOLDER = Path(__file__).parent        # folder containing app.py
+AUDIO_FOLDER = Path(__file__).parent
 
-
-app = Flask(__name__,  static_folder="dist", static_url_path="")
-
+app = Flask(__name__, static_folder="dist", static_url_path="")
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
-
 
 @app.route("/")
 def serve_index():
@@ -41,15 +56,226 @@ def serve_index():
 def serve_static(path):
     return send_from_directory(app.static_folder, path)
 
+DEFAULT_FREE_SECONDS = int(os.getenv("DEFAULT_FREE_SECONDS", 30))
 
+def split_on_silence_chunks(file_path, min_silence_len=700, silence_thresh=-40, keep_silence=300, max_chunk_len_ms=10*60*1000):
+    """
+    Splits audio on silence using pydub.split_on_silence but also ensures no chunk
+    exceeds max_chunk_len_ms by further slicing if needed.
+    - min_silence_len: ms of silence to consider as split point
+    - silence_thresh: dBFS threshold (e.g. -40)
+    - keep_silence: how much silence to keep at chunk edges (ms)
+    - max_chunk_len_ms: max chunk size (ms) — safety.
+    Returns list of AudioSegment objects.
+    """
+    audio = AudioSegment.from_file(file_path)
+    # initial split by silence
+    raw_chunks = silence.split_on_silence(
+        audio,
+        min_silence_len=min_silence_len,
+        silence_thresh=silence_thresh,
+        keep_silence=keep_silence
+    )
 
+    # ensure chunks aren't too large (split further if needed)
+    final_chunks = []
+    for ch in raw_chunks:
+        if len(ch) <= max_chunk_len_ms:
+            final_chunks.append(ch)
+        else:
+            # break into equal sized pieces with small overlap
+            start = 0
+            chunk_ms = max_chunk_len_ms
+            overlap_ms = 500
+            while start < len(ch):
+                end = min(start + chunk_ms, len(ch))
+                piece = ch[start:end]
+                final_chunks.append(piece)
+                start = end - overlap_ms
+    return final_chunks
 
-#--------------- Database connection setup ---------------
-# Ensure you have the required environment variables set
+def transcribe_chunk_with_eleven(audio_segment, filename="chunk.wav", language="bn", timeout=600):
+    """Export the audio segment to a temp WAV and send to Eleven STT, return text"""
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+        audio_segment.export(tmp.name, format="wav")
+        tmp_path = tmp.name
+
+    try:
+        with open(tmp_path, "rb") as fh:
+            headers = {
+                "xi-api-key": ELEVEN_API_KEY,
+                "Accept": "application/json"
+            }
+            data = {
+                "model_id": "scribe_v1",
+                "language_code": language,
+                "diarize": False
+            }
+            files = {"file": (filename, fh, "audio/wav")}
+            resp = requests.post(ELEVEN_STT, headers=headers, data=data, files=files, timeout=timeout)
+            if resp.status_code >= 400:
+                print("Eleven error:", resp.status_code, resp.text)
+            resp.raise_for_status()
+            j = resp.json()
+            # prefer 'text' then 'transcript'
+            return j.get("text") or j.get("transcript") or "", j
+    finally:
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass
+
+def merge_texts_remove_overlap(a: str, b: str, max_overlap_words=40):
+    """
+    Join text a and b by detecting the largest overlap (in words) up to max_overlap_words.
+    Returns merged string with duplication removed.
+    """
+    if not a:
+        return b
+    if not b:
+        return a
+
+    a_words = a.strip().split()
+    b_words = b.strip().split()
+
+    # limit search length
+    max_ol = min(max_overlap_words, len(a_words), len(b_words))
+
+    # find the largest k such that last k words of a == first k words of b
+    best_k = 0
+    for k in range(max_ol, 0, -1):
+        if a_words[-k:] == b_words[:k]:
+            best_k = k
+            break
+
+    if best_k > 0:
+        merged = " ".join(a_words + b_words[best_k:])
+        return merged
+
+    # fallback: fuzzy matching using SequenceMatcher on strings (safer for minor punctuation differences)
+    s = difflib.SequenceMatcher(None, a, b)
+    match = s.find_longest_match(0, len(a), 0, len(b))
+    # if matched substring is reasonably long, remove duplication
+    if match.size > 20:  # characters
+        overlap_in_a = a[match.a: match.a + match.size]
+        # remove overlap in b start
+        if b.startswith(overlap_in_a):
+            return a + b[match.size:]
+    # no overlap detected: simple join with space
+    return a + " " + b
+
+from pydub import AudioSegment
+import tempfile
+import os
+import math
+
+@app.route("/transcribe_smart_chunk", methods=["POST"])
+def transcribe_smart_chunk():
+    email = request.form.get("email")
+    name = request.form.get("name", "")
+    uploaded_file = request.files.get("file")
+
+    if not uploaded_file:
+        return jsonify(error="No file uploaded"), 400
+    if not email:
+        return jsonify(error="No email provided"), 400
+
+    suffix = Path(uploaded_file.filename).suffix
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    try:
+        uploaded_file.save(tmp.name)
+        tmp.close()
+
+        if suffix.lower() not in AUDIO_EXTS:
+            return jsonify(error="Unsupported file type"), 415
+
+        user = get_user_from_db(email, name)
+        audio_duration = get_audio_duration(tmp.name)
+        if audio_duration is None:
+            return jsonify(error="Could not determine audio duration"), 500
+
+        seconds_needed = math.ceil(audio_duration)
+        if user["free_seconds"] < seconds_needed:
+            return jsonify(
+                transcription=None,
+                summary=None,
+                keyPoints=None,
+                error=f"Not enough free seconds. You have {user['free_seconds']} seconds left, but the audio is {seconds_needed} seconds long.",
+                free_seconds_left=user["free_seconds"]
+            ), 402
+
+        # Deduct user seconds early
+        new_balance = user["free_seconds"] - seconds_needed
+        update_user_free_seconds(user["id"], new_balance)
+
+        # Load full audio with pydub
+        audio = AudioSegment.from_file(tmp.name)
+
+        chunk_length_ms = 4 * 60 * 1000  # 4 minutes per chunk (adjust as needed)
+        chunks = [audio[i:i+chunk_length_ms] for i in range(0, len(audio), chunk_length_ms)]
+
+        full_transcript = ""
+
+        for i, chunk_audio in enumerate(chunks):
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as chunk_file:
+                # Export chunk with safe logic
+                ext = suffix.replace('.', '')
+                if ext == "m4a":
+                    # export as mp4 container with AAC codec
+                    chunk_audio.export(chunk_file.name, format="mp4", codec="aac")
+                elif ext in {"mp3", "wav", "ogg", "flac"}:
+                    chunk_audio.export(chunk_file.name, format=ext)
+                else:
+                    chunk_audio.export(chunk_file.name, format="wav")  # fallback
+                
+                chunk_file.close()
+
+                headers = {"xi-api-key": os.getenv("ELEVEN_API_KEY")}
+                files = {"file": (uploaded_file.filename, open(chunk_file.name, "rb"), uploaded_file.mimetype)}
+                data = {"model_id": "scribe_v1"}
+
+                response = pyrequests.post(
+                    "https://api.elevenlabs.io/v1/speech-to-text",
+                    headers=headers,
+                    data=data,
+                    files=files,
+                    timeout=600,
+                )
+                response.raise_for_status()
+                body = response.json()
+                chunk_text = body.get("text") or body.get("transcript") or ""
+
+                full_transcript += chunk_text + " "
+
+                try:
+                    os.unlink(chunk_file.name)
+                except OSError:
+                    pass
+
+        full_transcript = full_transcript.strip()
+        if not full_transcript:
+            return jsonify(error="Transcription failed or empty", free_seconds_left=new_balance), 500
+
+        summary, keyPoints = summarize_with_gpt_mini(full_transcript)
+        corrected = fix_spelling(full_transcript)
+
+        return jsonify(
+            transcription=corrected,
+            summary=summary,
+            keyPoints=keyPoints,
+            free_seconds_left=new_balance,
+        )
+    except Exception as e:
+        print(f"Transcription error: {e}")
+        return jsonify(error=str(e)), 500
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
+
+        
 def get_db_connection():
-    
-    """Create a database connection using environment variables."""
-
     return mysql.connector.connect(
         host=os.getenv("MYSQL_HOST"),
         user=os.getenv("MYSQL_USER"),
@@ -58,22 +284,16 @@ def get_db_connection():
         port=int(os.getenv("MYSQL_PORT", 3306))
     )
 
-DEFAULT_TOKENS = int(os.getenv("DEFAULT_TOKENS", 100))
-TOKENS_PER_1000_WORDS = 200  # cost setting (adjust as needed)
-
-#  ---------- User utilities ----------
 def get_user_from_db(email, name=None):
-    """Fetch user by email; create with default tokens if not exists."""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
         user = cursor.fetchone()
-
         if not user:
             cursor.execute(
-                "INSERT INTO users (email, name, tokens) VALUES (%s, %s, %s)",
-                (email, name, DEFAULT_TOKENS)
+                "INSERT INTO users (email, name, free_seconds) VALUES (%s, %s, %s)",
+                (email, name, DEFAULT_FREE_SECONDS)
             )
             conn.commit()
             cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
@@ -83,33 +303,23 @@ def get_user_from_db(email, name=None):
         cursor.close()
         conn.close()
 
-def update_user_tokens(user_id, new_token_count):
-    """Update user’s token balance."""
+def update_user_free_seconds(user_id, new_seconds_count):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("UPDATE users SET tokens = %s WHERE id = %s", (new_token_count, user_id))
+        cursor.execute("UPDATE users SET free_seconds = %s WHERE id = %s", (new_seconds_count, user_id))
         conn.commit()
     finally:
         cursor.close()
         conn.close()
 
-
-#--------------- End of Database connection setup ---------------
-
-
-ASCII_RE = re.compile(r'^[\x00-\x7F]+$')   # “pure ASCII” tester
+ASCII_RE = re.compile(r'^[\x00-\x7F]+$')
 
 def is_english_token(tok: str) -> bool:
-    """Return True if token looks like a real English word (ASCII letters / digits)."""
     tok = tok.strip()
     return bool(tok) and ASCII_RE.fullmatch(tok)
 
 def fix_spelling(transcription: str) -> str:
-    """
-    Uses GPT-4o Mini to fix Bangla spelling mistakes in the transcription.
-    Returns the corrected Bangla text.
-    """
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -126,27 +336,16 @@ def fix_spelling(transcription: str) -> str:
             temperature=0.2,
             max_tokens=1000
         )
-
         return response.choices[0].message.content.strip()
-
     except Exception as e:
         print("❌ Spell correction failed:", e)
-        return transcription  # fallback to original if error
-
+        return transcription
 
 def summarize_with_gpt_mini(text: str) -> tuple[str, list[str]]:
-    """
-    Uses GPT-4o Mini to create a short Bengali summary and 3-5 key points.
-    Returns (summary, keyPoints_list).
-    """
     prompt = (
         "in few lines Summarize the transcription of the audio and give key points in the language of the transcription \n\n"
         f"টেক্সট:\n{text}"
     )
-
-
-
-
     resp = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
@@ -158,9 +357,7 @@ def summarize_with_gpt_mini(text: str) -> tuple[str, list[str]]:
         ],
         temperature=0.3
     )
-
     out = resp.choices[0].message.content.strip()
-    # Split first paragraph (summary) vs bullets
     parts = out.split("\n", 1)
     summary = parts[0].strip()
     bullet_block = parts[1] if len(parts) > 1 else ""
@@ -171,88 +368,78 @@ def summarize_with_gpt_mini(text: str) -> tuple[str, list[str]]:
     ]
     return summary, keyPoints
 
+def get_audio_duration(file_path):
+    try:
+        ext = os.path.splitext(file_path)[1].lower()
+        if ext == ".mp3":
+            audio = MP3(file_path)
+        elif ext == ".m4a":
+            audio = MP4(file_path)
+        elif ext == ".wav":
+            audio = WAVE(file_path)
+        elif ext == ".ogg":
+            audio = OggVorbis(file_path)
+        else:
+            return None
+        return audio.info.length
+    except Exception as e:
+        print(f"Error getting audio duration: {e}")
+        return None
 
-
-
-#--------------- User login and creation ---------------
 @app.route("/login_user", methods=["POST"])
 def login_user():
     data = request.json
-  
     email = data.get("email")
     name = data.get("name")
-
     if not email:
         return jsonify({"error": "No email provided"}), 400
-
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-
         cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
         user = cursor.fetchone()
-
         if not user:
             cursor.execute(
-                "INSERT INTO users (email, name, tokens) VALUES (%s, %s, %s)",
-                (email, name, DEFAULT_TOKENS)
+                "INSERT INTO users (email, name, free_seconds) VALUES (%s, %s, %s)",
+                (email, name, DEFAULT_FREE_SECONDS)
             )
             conn.commit()
-
             cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
             user = cursor.fetchone()
-
         cursor.close()
         conn.close()
-
         return jsonify({
             "email": user["email"],
             "name": user["name"],
-            "tokens": user["tokens"]
+            "free_seconds": user["free_seconds"]
         })
-
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
-#--------------- End of user login and creation ---------------
 
-#--------------- Update user currency ---------------
 @app.route("/update_currency", methods=["POST"])
 def update_currency():
     data = request.json
     email = data.get("email")
-    new_tokens = data.get("tokens")
-
-    if not email :
+    new_seconds = data.get("free_seconds")
+    if not email:
         return jsonify({"error": "Missing email"}), 400
-
-    elif new_tokens is None:
-        return jsonify({"error": "Missing tokens"}), 400
-    
-    
+    elif new_seconds is None:
+        return jsonify({"error": "Missing free_seconds"}), 400
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("UPDATE users SET tokens = %s WHERE email = %s", (new_tokens, email))
+        cursor.execute("UPDATE users SET free_seconds = %s WHERE email = %s", (new_seconds, email))
         conn.commit()
         cursor.close()
         conn.close()
-        return jsonify({"message": "Tokens updated successfully"}), 200
-    
+        return jsonify({"message": "Free seconds updated successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
-#--------------- End of update user currency ---------------
-
-
-# ---------- transcribe local file ----------
 
 @app.route("/transcribe_local", methods=["POST"])
 def transcribe_local():
-    # 1) Read multipart form fields
     email = request.form.get("email")
     name = request.form.get("name", "")
-    language = request.form.get("language", "bn")
     uploaded_file = request.files.get("file")
 
     if not uploaded_file:
@@ -260,51 +447,70 @@ def transcribe_local():
     if not email:
         return jsonify(error="No email provided"), 400
 
-    # 2) Save to a NamedTemporaryFile (avoids Windows locking)
     suffix = Path(uploaded_file.filename).suffix
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     try:
         uploaded_file.save(tmp.name)
         tmp.close()
 
-        # 3) Validate extension
         if suffix.lower() not in AUDIO_EXTS:
             return jsonify(error="Unsupported file type"), 415
 
-        # 4) Fetch or create user, check tokens
         user = get_user_from_db(email, name)
-        raw_trans = client.audio.transcriptions.create(
-            model="gpt-4o-mini-transcribe",
-            file=open(tmp.name, "rb"),
-            prompt="You are a transcription engine. Transcribe word-for-word...",
-            **({"language": language} if language in ("en","bn") else {})
-        )
-        raw_text = raw_trans.text.strip()
-
-        if not raw_text:
-            return jsonify(error="Transcription failed or empty",
-                           tokens_left=user["tokens"]), 500
         
+        audio_duration = get_audio_duration(tmp.name)
+        if audio_duration is None:
+            return jsonify(error="Could not determine audio duration"), 500
 
-        word_count = len(raw_text.split())
-        
-        tokens_needed = math.ceil(word_count * (TOKENS_PER_1000_WORDS / 1000))
+        seconds_needed = math.ceil(audio_duration)
 
-
-        if user["tokens"] < tokens_needed:
+        if user["free_seconds"] < seconds_needed:
             return jsonify(
                 transcription=None,
                 summary=None,
                 keyPoints=None,
-                error="Not enough tokens. Please buy more.",
-                tokens_left=user["tokens"]
+                error=f"Not enough free seconds. You have {user['free_seconds']} seconds left, but the audio is {seconds_needed} seconds long.",
+                free_seconds_left=user["free_seconds"]
             ), 402
 
-        # 5) Deduct tokens & post-process
-        new_balance = user["tokens"] - tokens_needed
-        update_user_tokens(user["id"], new_balance)
+        new_balance = user["free_seconds"] - seconds_needed
+        update_user_free_seconds(user["id"], new_balance)  
+        raw_text = ""
 
-        # 6) Summarize and fix spelling
+        # Correctly open file and make API call with model_id as a query parameter
+        with open(tmp.name, "rb") as audio_file_object:
+            headers = {
+                "xi-api-key": os.getenv("ELEVEN_API_KEY")
+            }
+            files = {
+                "file": (uploaded_file.filename, audio_file_object, uploaded_file.mimetype),
+            }
+            # The model_id parameter must be in the URL, not the data payload
+            data  = {
+                "model_id": "scribe_v1",
+            }
+            
+            response = pyrequests.post(
+                'https://api.elevenlabs.io/v1/speech-to-text',
+                headers=headers,
+                data=data,
+                files=files,
+                timeout=600,
+            )
+            try:
+                response.raise_for_status()
+
+            except pyrequests.HTTPError as e:
+                print("ElevenLabs error response:", response.status_code, response.text)
+                raise    
+
+            body = response.json()
+            raw_text = body.get("text") or body.get("transcript") or ""
+
+        if not raw_text:
+            return jsonify(error="Transcription failed or empty",
+                           free_seconds_left=new_balance), 500
+        
         summary, keyPoints = summarize_with_gpt_mini(raw_text)
         corrected = fix_spelling(raw_text)
 
@@ -312,29 +518,25 @@ def transcribe_local():
             transcription=corrected,
             summary=summary,
             keyPoints=keyPoints,
-            tokens_left=new_balance
+            free_seconds_left=new_balance
         )
-
     except Exception as e:
+        print(f"Transcription error: {e}")
         return jsonify(error=str(e)), 500
-
     finally:
         try:
             os.unlink(tmp.name)
         except OSError:
             pass
 
-# ---------- fallback upload endpoint ----------
+
 @app.route("/transcribe", methods=["POST"])
 def transcribe_upload():
     if "audio" not in request.files:
         return jsonify(error="No audio file"), 400
-
-    language = request.form.get("language")
     audio_file = request.files["audio"]
     email = request.form.get("email")
     name = request.form.get("name", "")
-
     if not email:
         return jsonify(error="No email provided"), 400
 
@@ -343,37 +545,45 @@ def transcribe_upload():
         path = tmp.name
     try:
         user = get_user_from_db(email, name)
-
-        with open(path, "rb") as f:
-            params = {"model": "gpt-4o-mini-transcribe", "file": f}
-            if language == "en":
-                params["language"] = "en"
-            elif language == "bn":
-                params["language"] = "bn"
-
-            transcript = client.audio.transcriptions.create(**params)
-            raw_text = transcript.text.strip()
-
-        if not raw_text:
-            return jsonify(error="Transcription failed, no text generated",
-                           tokens_left=user["tokens"]), 500
-
-        # Count words and calculate tokens
-        word_count = len(raw_text.split())
-        tokens_needed = math.ceil(word_count / 1000) * TOKENS_PER_1000_WORDS
-
-        if user["tokens"] < tokens_needed:
+        audio_duration = get_audio_duration(path)
+        if audio_duration is None:
+            return jsonify(error="Could not determine audio duration"), 500
+        seconds_needed = math.ceil(audio_duration)
+        if user["free_seconds"] < seconds_needed:
             return jsonify(
                 transcription=None,
                 summary=None,
                 keyPoints=None,
-                error="Not enough tokens. Please buy more.",
-                tokens_left=user["tokens"]
+                error=f"Not enough free seconds. You have {user['free_seconds']} seconds left, but the audio is {seconds_needed} seconds long.",
+                free_seconds_left=user["free_seconds"]
             ), 402
 
-        # Deduct tokens only after success
-        new_balance = user["tokens"] - tokens_needed
-        update_user_tokens(user["id"], new_balance)
+        new_balance = user["free_seconds"] - seconds_needed
+        update_user_free_seconds(user["id"], new_balance)
+
+        raw_text = ""
+        with open(path, "rb") as audio_file_object:
+            headers = {
+                "xi-api-key": os.getenv("ELEVEN_API_KEY")
+            }
+            files = {
+                "audio_file": (audio_file.filename, audio_file_object, audio_file.mimetype),
+            }
+            params = {
+                "model_id": "scribe_v1",
+            }
+            response = pyrequests.post(
+                'https://api.elevenlabs.io/v1/speech-to-text',
+                headers=headers,
+                params=params,
+                files=files,
+            )
+            response.raise_for_status()
+            raw_text = response.json().get("transcript", "").strip()
+
+        if not raw_text:
+            return jsonify(error="Transcription failed, no text generated",
+                           free_seconds_left=new_balance), 500
 
         summary, keyPoints = summarize_with_gpt_mini(raw_text)
         corrected_text = fix_spelling(raw_text)
@@ -382,62 +592,13 @@ def transcribe_upload():
             transcription=corrected_text,
             summary=summary,
             keyPoints=keyPoints,
-            tokens_left=new_balance
+            free_seconds_left=new_balance
         )
-
     except Exception as e:
+        print(f"Transcription error: {e}")
         return jsonify(error=str(e)), 500
     finally:
         os.remove(path)
-
-"""
-#verify the google token for signin 
-
-CLIENT_SECRETS_FILE = Path(__file__).parent / "client_secret.json"
-REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "postmessage")  
-
-@app.route("/verify_google_token", methods=["POST"])
-def verify_google_token():
-    try:
-        code = request.json.get("code")
-        if not code:
-            return jsonify({"error": "No code provided"}), 400
-
-        # Exchange the authorization code for tokens
-        token_url = "https://oauth2.googleapis.com/token"
-        token_data = {
-            "code": code,
-            "client_id": GOOGLE_CLIENT_ID,
-            "client_secret": GOOGLE_CLIENT_SECRET,
-            "redirect_uri": REDIRECT_URI,
-            "grant_type": "authorization_code",
-        }
-
-        token_res = pyrequests.post(token_url, data=token_data)
-        if token_res.status_code != 200:
-            return jsonify({"error": "Token exchange failed", "details": token_res.json()}), 400
-
-        tokens = token_res.json()
-        idinfo = id_token.verify_oauth2_token(
-            tokens["id_token"],
-            grequests.Request(),
-            GOOGLE_CLIENT_ID
-        )
-
-        # Extract user info
-        user = {
-            "id": idinfo["sub"],
-            "email": idinfo.get("email"),
-            "name": idinfo.get("name"),
-            "picture": idinfo.get("picture")
-        }
-
-        return jsonify({"message": "Token verified successfully", "user": user})
-
-    except Exception as e:
-        return jsonify({"error": "Invalid token exchange", "details": str(e)}), 401
-
-"""
 
 if __name__ == "__main__":
     app.run(debug=True)
