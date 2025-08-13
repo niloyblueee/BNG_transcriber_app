@@ -62,6 +62,13 @@ print("pydub ffmpeg path:", AudioSegment.converter)
 def serve_index():
     return send_from_directory(app.static_folder, "index.html")
 
+
+@app.route("/health", methods=["GET"])
+def health():
+    return {"status":"ok"}, 200
+
+
+
 @app.route("/<path:path>")
 def serve_static(path):
     return send_from_directory(app.static_folder, path)
