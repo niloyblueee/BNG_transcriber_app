@@ -48,7 +48,7 @@ function App() {
 
   try {
     setLoading(true);
-    const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/transcribe_local`, {
+    const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/transcribe_smart_chunk`, {
       method: "POST",
       body: formData, // Don't set headers manually here
     });
