@@ -28,6 +28,11 @@ import difflib
 from pydub import AudioSegment, silence
 import requests
 from flask import Flask, request, jsonify
+from pydub import AudioSegment
+import tempfile
+import os
+import math
+
 
 app = Flask(__name__)
 
@@ -164,10 +169,6 @@ def merge_texts_remove_overlap(a: str, b: str, max_overlap_words=40):
     # no overlap detected: simple join with space
     return a + " " + b
 
-from pydub import AudioSegment
-import tempfile
-import os
-import math
 
 @app.route("/transcribe_smart_chunk", methods=["POST"])
 def transcribe_smart_chunk():
@@ -211,8 +212,20 @@ def transcribe_smart_chunk():
         # Load full audio with pydub
         audio = AudioSegment.from_file(tmp.name)
 
-        chunk_length_ms = 4 * 60 * 1000  # 4 minutes per chunk (adjust as needed)
+        # ----------------- CHUNK SIZE ADJUSTED -----------------
+        # Changed to 75 seconds per chunk (75 * 1000 ms) to avoid ElevenLabs ~79s cutoff
+        chunk_length_ms = 75 * 1000  # 75 seconds per chunk (adjust as needed)
+        # -------------------------------------------------------
+
         chunks = [audio[i:i+chunk_length_ms] for i in range(0, len(audio), chunk_length_ms)]
+        print(f"🔍 Total audio length: {len(audio) / 1000:.2f} seconds")
+        print(f"🔍 Chunk length target: {chunk_length_ms / 1000} seconds")
+        print(f"🔍 Total chunks created: {len(chunks)}")
+
+        for idx, chunk in enumerate(chunks):
+            duration_sec = len(chunk) / 1000
+            print(f"  - Chunk {idx + 1}: {duration_sec:.2f} seconds")
+
 
         full_transcript = ""
 
@@ -256,11 +269,13 @@ def transcribe_smart_chunk():
         if not full_transcript:
             return jsonify(error="Transcription failed or empty", free_seconds_left=new_balance), 500
 
+        update_user_free_seconds(user["id"], new_balance)
         summary, keyPoints = summarize_with_gpt_mini(full_transcript)
-        corrected = fix_spelling(full_transcript)
+        #corrected = fix_spelling(full_transcript)
 
         return jsonify(
-            transcription=corrected,
+            #transcription=corrected,
+            transcription = full_transcript,
             summary=summary,
             keyPoints=keyPoints,
             free_seconds_left=new_balance,
@@ -351,7 +366,7 @@ def summarize_with_gpt_mini(text: str) -> tuple[str, list[str]]:
         messages=[
             {
                 "role": "system",
-                "content": "You are a helpful assistant that summarizes Bengali text."
+                "content": "You are a helpful assistant that summarizes text."
             },
             {"role": "user", "content": prompt}
         ],
