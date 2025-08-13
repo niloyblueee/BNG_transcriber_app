@@ -33,7 +33,7 @@ from pydub import AudioSegment
 import tempfile
 import os
 import math
-
+import imageio_ffmpeg as ffmpeg
 
 app = Flask(__name__)
 
@@ -54,9 +54,7 @@ AUDIO_FOLDER = Path(__file__).parent
 app = Flask(__name__, static_folder="dist", static_url_path="")
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
-AudioSegment.converter = which("ffmpeg")
-print("pydub ffmpeg path:", AudioSegment.converter)
-
+AudioSegment.converter = ffmpeg.get_ffmpeg_exe()
 
 @app.route("/")
 def serve_index():
