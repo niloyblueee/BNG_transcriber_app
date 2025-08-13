@@ -48,6 +48,7 @@ ELEVEN_API_KEY = os.getenv("ELEVEN_API_KEY")
 if not ELEVEN_API_KEY:
     raise RuntimeError("ELEVEN_API_KEY is not set. Set the ELEVEN_API_KEY env var.")
 print("ELEVEN_API_KEY loaded (first 4 chars):", (os.getenv("ELEVEN_API_KEY") or "")[:4])
+print("Hello world")
 
 
 AUDIO_EXTS = {".mp3", ".m4a", ".wav", ".webm", ".ogg"}
