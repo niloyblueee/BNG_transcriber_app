@@ -26,6 +26,7 @@ import tempfile
 import math
 import difflib
 from pydub import AudioSegment, silence
+from pydub.utils import which
 import requests
 from flask import Flask, request, jsonify
 from pydub import AudioSegment
@@ -52,6 +53,10 @@ AUDIO_FOLDER = Path(__file__).parent
 
 app = Flask(__name__, static_folder="dist", static_url_path="")
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+AudioSegment.converter = which("ffmpeg")
+
+
 
 @app.route("/")
 def serve_index():
