@@ -182,6 +182,60 @@ def merge_texts_remove_overlap(a: str, b: str, max_overlap_words=40):
     # no overlap detected: simple join with space
     return a + " " + b
 
+@app.route("/debug_eleven", methods=["POST"])
+def debug_eleven():
+    """
+    Debug ElevenLabs request.
+    Sends uploaded audio and prints what is being sent.
+    """
+    uploaded_file = request.files.get("file")
+    if not uploaded_file:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+        uploaded_file.save(tmp.name)
+        tmp_path = tmp.name
+
+    try:
+        # Read file bytes
+        with open(tmp_path, "rb") as fh:
+            file_bytes = fh.read()
+
+        headers = {
+            "xi-api-key": ELEVEN_API_KEY,
+            "Accept": "application/json"
+        }
+        data = {
+            "model_id": "scribe_v1",
+            "language_code": "bn",
+            "diarize": False
+        }
+        files = {"file": ("debug.wav", file_bytes, "audio/wav")}
+
+        # DEBUG: print some info
+        print(f"Debug Eleven: file_size={len(file_bytes)} bytes")
+        print(f"Headers: {headers}")
+        print(f"Data: {data}")
+
+        # Send request to ElevenLabs
+        resp = requests.post(ELEVEN_STT, headers=headers, data=data, files=files, timeout=60)
+        print(f"Status code: {resp.status_code}")
+        print(f"Response: {resp.text}")
+
+        return jsonify({
+            "status_code": resp.status_code,
+            "response_text": resp.text
+        })
+    except Exception as e:
+        print(f"Debug Eleven Exception: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+
+
 
 @app.route("/transcribe_smart_chunk", methods=["POST"])
 def transcribe_smart_chunk():
