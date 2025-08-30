@@ -684,5 +684,44 @@ def transcribe_upload():
     finally:
         os.remove(path)
 
+@app.route("/railway_debug", methods=["GET"])
+def railway_debug():
+    import requests, os
+    from io import BytesIO
+
+    key = os.getenv("ELEVEN_API_KEY")
+    # show repr so we can see hidden chars
+    print("ELEVEN_API_KEY repr:", repr(key))
+    # quick small WAV payload (silence) - or create small bytes to test
+    dummy_bytes = BytesIO(b"RIFF....WAVEfmt ")  # small stub; httpbin will accept
+
+    headers = {"xi-api-key": key, "Accept": "application/json"}
+    files = {
+        "file": ("debug.wav", dummy_bytes.getvalue(), "audio/wav"),
+        "model_id": (None, "scribe_v1"),   # ensure multipart form-data includes model_id
+    }
+
+    out = {}
+
+    try:
+        # 1) echo via httpbin so we can inspect what actually left the container
+        hb = requests.post("https://httpbin.org/anything", headers=headers, files=files, timeout=15)
+        out["httpbin_status"] = hb.status_code
+        out["httpbin_json"] = hb.json() if hb.status_code < 500 else hb.text
+    except Exception as e:
+        out["httpbin_error"] = str(e)
+
+    try:
+        # 2) real call to ElevenLabs
+        el = requests.post("https://api.elevenlabs.io/v1/speech-to-text", headers=headers, files=files, timeout=15)
+        out["eleven_status"] = el.status_code
+        out["eleven_text"] = el.text[:2000]  # cap the response
+    except Exception as e:
+        out["eleven_error"] = str(e)
+
+    return out
+
+
+
 if __name__ == "__main__":
     app.run(debug=True)
