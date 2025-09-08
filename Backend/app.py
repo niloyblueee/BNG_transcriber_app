@@ -47,7 +47,6 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 ELEVEN_API_KEY = os.getenv("ELEVEN_API_KEY")
 if not ELEVEN_API_KEY:
     raise RuntimeError("ELEVEN_API_KEY is not set. Set the ELEVEN_API_KEY env var.")
-print("ELEVEN_API_KEY loaded (first 4 chars):", (os.getenv("ELEVEN_API_KEY") or "")[:4])
 print("Hello world")
 
 
@@ -339,12 +338,13 @@ def transcribe_smart_chunk():
             return jsonify(error="Transcription failed or empty", free_seconds_left=new_balance), 500
 
         update_user_free_seconds(user["id"], new_balance)
-        summary, keyPoints = summarize_with_gpt_mini(full_transcript)
+        summary = generate_summary_with_gpt_mini(full_transcript)
+        keyPoints = generate_keypoints_with_gpt_mini(full_transcript)
         #corrected = fix_spelling(full_transcript)
 
         return jsonify(
             #transcription=corrected,
-            transcription = full_transcript,
+            transcription=full_transcript,
             summary=summary,
             keyPoints=keyPoints,
             free_seconds_left=new_balance,
@@ -425,9 +425,10 @@ def fix_spelling(transcription: str) -> str:
         print("❌ Spell correction failed:", e)
         return transcription
 
+"""
 def summarize_with_gpt_mini(text: str) -> tuple[str, list[str]]:
     prompt = (
-        "in few lines Summarize the transcription of the audio and give key points in the language of the transcription \n\n"
+        "in few lines Summarize the transcription of the audio and give key points in the language of the transcription. \n\n"
         f"টেক্সট:\n{text}"
     )
     resp = client.chat.completions.create(
@@ -442,34 +443,90 @@ def summarize_with_gpt_mini(text: str) -> tuple[str, list[str]]:
         temperature=0.3
     )
     out = resp.choices[0].message.content.strip()
+    print(out)
     parts = out.split("\n", 1)
     summary = parts[0].strip()
     bullet_block = parts[1] if len(parts) > 1 else ""
+    print(bullet_block)
     keyPoints = [
         line.lstrip("–- ").strip()
         for line in bullet_block.splitlines()
         if line.strip()
     ]
     return summary, keyPoints
+"""
+
+def generate_summary_with_gpt_mini(text: str) -> str:
+    prompt = (
+        "In a few lines, summarize the transcription of the audio. make sure the language is the same as the language of the transcription.\n\n"
+        f"text:\n{text}"
+    )
+    resp = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that summarizes text."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.3
+    )
+    out = resp.choices[0].message.content.strip()
+    return out
+
+
+def generate_keypoints_with_gpt_mini(text: str) -> list[str]:
+    prompt = (
+        "Extract the key points from the following transcription and return them as bullet points in the language of the transcription.\n\n"
+        f"text:\n{text}"
+    )
+    resp = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that extracts key points from text."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.3
+    )
+    out = resp.choices[0].message.content.strip()
+    keyPoints = [
+        line.lstrip("–-•* ").strip()
+        for line in out.splitlines()
+        if line.strip()
+    ]
+    return keyPoints
+
+
+
+
 
 def get_audio_duration(file_path):
     try:
         ext = os.path.splitext(file_path)[1].lower()
         if ext == ".mp3":
             audio = MP3(file_path)
+            return audio.info.length
         elif ext == ".m4a":
             audio = MP4(file_path)
+            return audio.info.length
         elif ext == ".wav":
             audio = WAVE(file_path)
+            return audio.info.length
         elif ext == ".ogg":
             audio = OggVorbis(file_path)
-        else:
-            return None
-        return audio.info.length
+            return audio.info.length
+    
+        # Fallback: use pydub (ffmpeg) which supports webm, mp4, many formats
+        try:
+            seg = AudioSegment.from_file(file_path)
+            return len(seg) / 1000.0
+        except Exception as pydub_e:
+            print(f"pydub fallback failed for {file_path}: {pydub_e}")
+
+        return None
+
     except Exception as e:
         print(f"Error getting audio duration: {e}")
         return None
-
+    
 @app.route("/login_user", methods=["POST"])
 def login_user():
     data = request.json
@@ -595,7 +652,10 @@ def transcribe_local():
             return jsonify(error="Transcription failed or empty",
                            free_seconds_left=new_balance), 500
         
-        summary, keyPoints = summarize_with_gpt_mini(raw_text)
+        summary = generate_summary_with_gpt_mini(raw_text) 
+        keyPoints = generate_keypoints_with_gpt_mini(raw_text)
+
+
         corrected = fix_spelling(raw_text)
 
         return jsonify(
@@ -669,7 +729,8 @@ def transcribe_upload():
             return jsonify(error="Transcription failed, no text generated",
                            free_seconds_left=new_balance), 500
 
-        summary, keyPoints = summarize_with_gpt_mini(raw_text)
+        summary = generate_summary_with_gpt_mini(raw_text) 
+        keyPoints = generate_keypoints_with_gpt_mini(raw_text)
         corrected_text = fix_spelling(raw_text)
 
         return jsonify(
