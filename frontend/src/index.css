@@ -149,6 +149,7 @@ button:focus-visible {
 }
 
 
+
 /* --- Desktop-Specific Adjustments --- */
 @media screen and (min-width: 769px) {
   /* Make the user avatar bigger on desktop */
