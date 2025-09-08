@@ -370,27 +370,29 @@ return (
                   )}
             </div>
 
-           {/* Buttons for copy & export (PDF) */}
-            <div className="action-buttons" style={{ marginTop: 12 }}>
-              <button
-                className="cursor-target"
-                onClick={handleCopyTranscription}
-                disabled={!transcription}
-                title={!transcription ? "No transcription to copy" : "Copy transcription to clipboard"}
-                style={{ marginRight: 8 }}
-              >
-                Copy Transcription
-              </button>
+                {/* Buttons for copy & export (PDF) */}
+              <div id="actionButtons" className="action-buttons" style={{ marginTop: 12 }}>
+                <button
+                  id="copyBtn"
+                  className="cursor-target"
+                  onClick={handleCopyTranscription}
+                  disabled={!transcription}
+                  title={!transcription ? "No transcription to copy" : "Copy transcription to clipboard"}
+                  style={{ marginRight: 8 }}
+                >
+                  Copy Transcription
+                </button>
 
-              <button
-                className="cursor-target"
-                onClick={handleExportPdf}
-                disabled={!(transcription || summary || (keyPoints && keyPoints.length))}
-                title={!(transcription || summary || (keyPoints && keyPoints.length)) ? "Nothing to export" : "Export all output to PDF"}
-              >
-                Export PDF (Transcription, Summary, Key Points)
-              </button>
-            </div>
+                <button
+                  id="exportBtn"
+                  className="cursor-target"
+                  onClick={handleExportPdf}
+                  disabled={!(transcription || summary || (keyPoints && keyPoints.length))}
+                  title={!(transcription || summary || (keyPoints && keyPoints.length)) ? "Nothing to export" : "Export all output to PDF"}
+                >
+                  Export PDF (Transcription, Summary, Key Points)
+                </button>
+              </div>
             
               <br />
               <br />
