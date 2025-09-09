@@ -8,8 +8,8 @@ import Particles from './Particles';
 import TargetCursor from './TargetCursor';
 import ClickSpark from './ClickSpark';
 import LiveRecorder from './LiveRecorder';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
+
+
 
 
 
@@ -26,11 +26,9 @@ function App() {
   const [user, setUser] = useState("");
   const [loading, setLoading] = useState(false); 
   const [seconds, setSeconds] = useState(0);
-  
 
-  console.log("Env Client ID: in app.jsx", import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
-  
+
   const handleFileChange = (e) => {
     setSelectedFile(e.target.files[0]);
   };
@@ -50,7 +48,7 @@ function App() {
  
 
   try {
-    setLoading(true);
+        setLoading(true);
     const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/transcribe_smart_chunk`, {
       method: "POST",
       body: formData, // Don't set headers manually here
@@ -117,105 +115,64 @@ function App() {
     }
   };
 
-  // -----------------------------
-  // PDF export (html2canvas + jsPDF)
-  // -----------------------------
-  const handleExportPdf = async () => {
-    if (!(transcription || summary || (keyPoints && keyPoints.length))) {
-      toast.info("Nothing to export.");
-      return;
-    }
+// -----------------------------
+// DOC export (.doc file)
+// -----------------------------
+const handleExportDoc = async () => {
+  if (!(transcription || summary || (keyPoints && keyPoints.length))) {
+    toast.info("Nothing to export.");
+    return;
+  }
 
-    setLoading(true);
-    try {
-      // Build a hidden DOM node containing nicely formatted content
-      const container = document.createElement('div');
-      container.style.position = 'fixed';
-      container.style.left = '-9999px';
-      container.style.top = '0';
-      container.style.width = '800px'; // width used to render; controls layout in PDF
-      container.style.padding = '20px';
-      container.style.background = '#ffffff';
-      container.style.color = '#000';
-      container.style.fontFamily = 'Arial, Helvetica, sans-serif';
-      container.style.fontSize = '12px';
-      container.style.lineHeight = '1.4';
-      container.innerHTML = `
-        <div style="max-width:760px; margin:0 auto;">
-          <h1 style="font-size:18px; margin-bottom:8px;">Transcription</h1>
-          <div style="white-space:pre-wrap; margin-bottom:16px;">${escapeHtml(transcription) || "<em>No transcription</em>"}</div>
+  try {
+    let content = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' 
+            xmlns:w='urn:schemas-microsoft-com:office:word' 
+            xmlns='http://www.w3.org/TR/REC-html40'>
+      <head><meta charset="utf-8"><title>Exported Document</title></head>
+      <body style="font-family:Arial,Helvetica,sans-serif;font-size:12pt;line-height:1.4;">
+        <h1>Transcription</h1>
+        <div>${transcription ? transcription.replace(/\n/g, "<br/>") : "<em>No transcription</em>"}</div>
+        
+        <h1>Summary</h1>
+        <div>${summary ? summary.replace(/\n/g, "<br/>") : "<em>No summary</em>"}</div>
+        
+        <h1>Key Points</h1>
+        ${
+          keyPoints && keyPoints.length
+            ? `<ol>${keyPoints.map(k => `<li>${k}</li>`).join("")}</ol>`
+            : `<div><em>No key points</em></div>`
+        }
 
-          <h1 style="font-size:18px; margin-bottom:8px;">Summary</h1>
-          <div style="white-space:pre-wrap; margin-bottom:16px;">${escapeHtml(summary) || "<em>No summary</em>"}</div>
-
-          <h1 style="font-size:18px; margin-bottom:8px;">Key Points</h1>
-          ${ (keyPoints && keyPoints.length) ? `<ol style="margin-left:16px;">${keyPoints.map(k => `<li style="margin-bottom:6px;">${escapeHtml(k)}</li>`).join('')}</ol>` : `<div><em>No key points</em></div>` }
-          
-          <div style="margin-top:20px; font-size:10px; color:#666;">Generated: ${new Date().toLocaleString()}</div>
+        <div style="margin-top:20px;font-size:10pt;color:#666;">
+          Generated: ${new Date().toLocaleString()}
         </div>
-      `;
+      </body></html>
+    `;
 
-      document.body.appendChild(container);
+    const blob = new Blob(['\ufeff', content], {
+      type: "application/msword;charset=utf-8"
+    });
 
-      // Render with html2canvas
-      const canvas = await html2canvas(container, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        allowTaint: true
-      });
+    const filename = `transcription_${new Date()
+      .toISOString()
+      .slice(0, 19)
+      .replace(/[:T]/g, "-")}.doc`;
 
-      const imgData = canvas.toDataURL('image/png');
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
-      // Create jsPDF (A4)
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      // calculate image dimensions in mm
-      const imgProps = pdf.getImageProperties(imgData);
-      const imgWidth = pdfWidth;
-      const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      // Add first page
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pdfHeight;
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pdfHeight;
-      }
-
-      // Save PDF (this triggers download)
-      const filename = `transcription_${new Date().toISOString().slice(0,19).replace(/[:T]/g, "-")}.pdf`;
-      pdf.save(filename);
-
-      // Cleanup
-      document.body.removeChild(container);
-      toast.success("PDF exported / download started.");
-    } catch (err) {
-      console.error("PDF export error:", err);
-      toast.error("Failed to generate PDF. Try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // small helper to sanitize text (keeps line breaks)
-  const escapeHtml = (unsafe) => {
-    if (!unsafe && unsafe !== "") return "";
-    return String(unsafe)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  };
+    toast.success("DOC exported / download started.");
+  } catch (err) {
+    console.error("DOC export error:", err);
+    toast.error("Failed to generate DOC. Try again.");
+  }
+};
 
 
 
@@ -386,11 +343,11 @@ return (
                 <button
                   id="exportBtn"
                   className="cursor-target"
-                  onClick={handleExportPdf}
+                  onClick={handleExportDoc}
                   disabled={!(transcription || summary || (keyPoints && keyPoints.length))}
                   title={!(transcription || summary || (keyPoints && keyPoints.length)) ? "Nothing to export" : "Export all output to PDF"}
                 >
-                  Export PDF (Transcription, Summary, Key Points)
+                  Export DOC (Transcription, Summary, Key Points)
                 </button>
               </div>
             
