@@ -13,6 +13,8 @@
     "@chakra-ui/react": "^3.24.2",
     "@emotion/react": "^11.14.0",
     "@react-oauth/google": "^0.12.2",
+    "docx": "^9.5.1",
+    "file-saver": "^2.0.5",
     "gsap": "^3.13.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.2",

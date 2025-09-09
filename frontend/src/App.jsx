@@ -9,7 +9,8 @@ import TargetCursor from './TargetCursor';
 import ClickSpark from './ClickSpark';
 import LiveRecorder from './LiveRecorder';
 
-
+import { Document, Packer, Paragraph, TextRun } from "docx";
+import { saveAs } from "file-saver";
 
 
 
@@ -116,65 +117,42 @@ function App() {
   };
 
 // -----------------------------
-// DOC export (.doc file)
+// DOCX export (.doc file)
 // -----------------------------
-const handleExportDoc = async () => {
-  if (!(transcription || summary || (keyPoints && keyPoints.length))) {
+const handleExportDocx = async () => {
+  if (!transcription && !summary && (!keyPoints || !keyPoints.length)) {
     toast.info("Nothing to export.");
     return;
   }
 
-  try {
-    let content = `
-      <html xmlns:o='urn:schemas-microsoft-com:office:office' 
-            xmlns:w='urn:schemas-microsoft-com:office:word' 
-            xmlns='http://www.w3.org/TR/REC-html40'>
-      <head><meta charset="utf-8"><title>Exported Document</title></head>
-      <body style="font-family:Arial,Helvetica,sans-serif;font-size:12pt;line-height:1.4;">
-        <h1>Transcription</h1>
-        <div>${transcription ? transcription.replace(/\n/g, "<br/>") : "<em>No transcription</em>"}</div>
-        
-        <h1>Summary</h1>
-        <div>${summary ? summary.replace(/\n/g, "<br/>") : "<em>No summary</em>"}</div>
-        
-        <h1>Key Points</h1>
-        ${
-          keyPoints && keyPoints.length
-            ? `<ol>${keyPoints.map(k => `<li>${k}</li>`).join("")}</ol>`
-            : `<div><em>No key points</em></div>`
-        }
+  const doc = new Document({
+    sections: [
+      {
+        properties: {},
+        children: [
+          new Paragraph({ text: "Transcription", heading: "Heading1" }),
+          new Paragraph({ text: transcription || "No transcription available." }),
 
-        <div style="margin-top:20px;font-size:10pt;color:#666;">
-          Generated: ${new Date().toLocaleString()}
-        </div>
-      </body></html>
-    `;
+          new Paragraph({ text: "Summary", heading: "Heading1" }),
+          new Paragraph({ text: summary || "No summary available." }),
 
-    const blob = new Blob(['\ufeff', content], {
-      type: "application/msword;charset=utf-8"
-    });
+          new Paragraph({ text: "Key Points", heading: "Heading1" }),
+          ...(keyPoints && keyPoints.length
+            ? keyPoints.map(
+                (point) => new Paragraph({ text: point, bullet: { level: 0 } })
+              )
+            : [new Paragraph({ text: "No key points available." })]),
 
-    const filename = `transcription_${new Date()
-      .toISOString()
-      .slice(0, 19)
-      .replace(/[:T]/g, "-")}.doc`;
+          new Paragraph({ text: `Generated: ${new Date().toLocaleString()}`, spacing: { before: 300 } }),
+        ],
+      },
+    ],
+  });
 
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast.success("DOC exported / download started.");
-  } catch (err) {
-    console.error("DOC export error:", err);
-    toast.error("Failed to generate DOC. Try again.");
-  }
+  const blob = await Packer.toBlob(doc);
+  saveAs(blob, `transcription_${new Date().toISOString().slice(0,19).replace(/[:T]/g, "-")}.docx`);
+  toast.success("DOCX file exported.");
 };
-
-
 
 
 
@@ -343,11 +321,11 @@ return (
                 <button
                   id="exportBtn"
                   className="cursor-target"
-                  onClick={handleExportDoc}
+                  onClick={handleExportDocx}
                   disabled={!(transcription || summary || (keyPoints && keyPoints.length))}
-                  title={!(transcription || summary || (keyPoints && keyPoints.length)) ? "Nothing to export" : "Export all output to PDF"}
+                  title={!(transcription || summary || (keyPoints && keyPoints.length)) ? "Nothing to export" : "Export all output to DOCX"}
                 >
-                  Export DOC (Transcription, Summary, Key Points)
+                  Export DOCX (Transcription, Summary, Key Points)
                 </button>
               </div>
             
