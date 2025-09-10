@@ -2,6 +2,8 @@ import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
 import React, { useState, useEffect, useRef } from "react";
 import TextType from "./TextType";
+import { useNavigate } from "react-router-dom";
+
 
 // Header component for the application
 // Displays user information, login/logout, and time balance.
@@ -65,6 +67,24 @@ function Header({ user, setUser, onLogout, seconds, setSeconds }) {
     };
   }, [profileRef]);
 
+
+
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    // Modern navigation API
+    const navEntries = performance.getEntriesByType && performance.getEntriesByType("navigation");
+    const navType = navEntries && navEntries.length
+      ? navEntries[0].type
+      // fallback for older browsers
+      : (performance && performance.navigation && performance.navigation.type === 1 ? "reload" : "");
+
+    if (navType === "reload") {
+      // send user to "/" on reload; replace avoids adding a history entry
+      navigate("/", { replace: true });
+    }
+  }, [navigate]);
+
   return (
     <header className="app-header">
       {/* This top bar contains elements that will be positioned left and right */}
@@ -75,7 +95,7 @@ function Header({ user, setUser, onLogout, seconds, setSeconds }) {
               {/* Displaying seconds instead of tokens */}
               <span className="tokens">💰 {seconds} sec</span> 
               {/* Button text changed from "Buy Tokens" to "Buy Time" */}
-              <button className="buy-tokens-btn cursor-target">Buy Time</button>
+              <button className="buy-tokens-btn cursor-target" onClick={() => navigate("/packages")}>Buy Time</button>
             </>
           )}
         </div>

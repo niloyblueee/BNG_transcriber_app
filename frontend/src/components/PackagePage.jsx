@@ -1,7 +1,7 @@
 import { Box, Button, Card, CardDescription, For, Stack } from "@chakra-ui/react"
-import ShinyText from './styling/ShinyText.js';
-import GradientText from './styling/GradientText.js';
-import Particles from './styling/Particles.js';
+import ShinyText from './styling/ShinyText.jsx';
+import GradientText from './styling/GradientText.jsx';
+import Particles from './styling/Particles.jsx';
 import { Provider } from "./ui/provider";
 import React, { useState } from "react";
 

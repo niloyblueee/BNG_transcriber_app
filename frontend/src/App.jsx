@@ -8,10 +8,10 @@ import Particles from './Particles';
 import TargetCursor from './TargetCursor';
 import ClickSpark from './ClickSpark';
 import LiveRecorder from './LiveRecorder';
-
+import { Route, Routes } from 'react-router-dom';
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
-
+import PackagePage from './components/PackagePage';
 
 
 //import Authwrapper from './AuthWrapper/Authwrapper.jsx';
@@ -212,135 +212,157 @@ if (!user) {
 }
 
 return (
-
-
   <>
-  <ClickSpark 
-    sparkColor='#fff'
-    sparkSize={10}
-    sparkRadius={15}
-    sparkCount={8}
-    duration={400}>
+    <ClickSpark 
+      sparkColor='#fff'
+      sparkSize={10}
+      sparkRadius={15}
+      sparkCount={8}
+      duration={400}
+    >
+      <div style={{ position: "relative", minHeight: "100vh", zIndex: 2 }}> 
 
+        <TargetCursor 
+          spinDuration={2}
+          hideDefaultCursor={true}
+          style={{ position: "fixed", top: 0, left: 0, width: "50vw", height: "50vh", zIndex: 9999 }}
+        />
 
-    <div style={{ position: "relative", minHeight: "100vh", zIndex: 2 }}> 
-
-      <TargetCursor 
-        spinDuration={2}
-        hideDefaultCursor={true}
-        style={{ position: "fixed", top: 0, left: 0, width: "50vw", height: "50vh", zIndex: 9999 }}
-      />
-    
-
-    <div className="particle-background">
-      <Particles
-        particleColors={['#ffffff', '#ffffff']}
-        particleCount={200}
-        particleSpread={10}
-        speed={0.1}
-        particleBaseSize={100}
-        moveParticlesOnHover={true}
-        alphaParticles={false}
-        disableRotation={false}
-      />
-    </div>
-
-    {/* Foreground App Content */}
-    <div className="app-content">
-      <Header user={user} 
-        setUser={setUser} 
-        seconds={seconds}
-        setSeconds={setSeconds}
-        onLogout={() => setUser(null)} />
-      <ToastContainer position="top-center" autoClose={3000} />
-
-      {user && (
-        <main>
-          <div className="upload-area">
-            <input className="cursor-target" type="file" accept="audio/*,video/*, .mp4, .m4a, .acc, audio/mp4, audio/aac, audio/x-m4a, audio/mp3, audio/x-mp3" onChange={handleFileChange} />
-            <button className="cursor-target" onClick={handleUpload}>Upload and Transcribe</button>
-          </div>
-
-          {loading && (
-            <div className="loading-animation">
-              <span>🎤 TRANSCRIBING</span>
-              <span className="dot">.</span>
-              <span className="dot">.</span>
-              <span className="dot">.</span>
-            </div>
-          )}
-
-          {!loading && !transcription && (
-            <div className="no-output">
-              <p>No transcription available. Please upload an audio file.</p>
-            </div>
-          )}
-          <LiveRecorder
-            user={user}
-            setTranscription={setTranscription}
-            setSummary={setSummary}
-            setKeyPoints={setKeyPoints}
-            setSeconds={setSeconds}
-            setLoading={setLoading}
+        <div className="particle-background">
+          <Particles
+            particleColors={['#ffffff', '#ffffff']}
+            particleCount={200}
+            particleSpread={10}
+            speed={0.1}
+            particleBaseSize={100}
+            moveParticlesOnHover={true}
+            alphaParticles={false}
+            disableRotation={false}
           />
-          <div className="output-container">
-            <div className="transcription-box">
-              <h2>Transcription</h2>
-              <p>{transcription}</p>
-            </div>
-            <div className="summary-box">
-              <h2>Summary</h2>
-              <p>{summary}</p>
-            </div>
-            <div className="keypoints-box">
-              <h2>Key Points</h2>
-              {keyPoints.length ? (
-                <ol>
-                  {keyPoints.map((point, i) => (
-                    <li key={i}>{point}</li>
-                  ))}
-                </ol>
-              ) : (
-                <p>No key points available.</p>
-                  )}
-            </div>
+        </div>
 
-                {/* Buttons for copy & export (PDF) */}
-              <div id="actionButtons" className="action-buttons" style={{ marginTop: 12 }}>
-                <button
-                  id="copyBtn"
-                  className="cursor-target"
-                  onClick={handleCopyTranscription}
-                  disabled={!transcription}
-                  title={!transcription ? "No transcription to copy" : "Copy transcription to clipboard"}
-                  style={{ marginRight: 8 }}
-                >
-                  Copy Transcription
-                </button>
 
-                <button
-                  id="exportBtn"
-                  className="cursor-target"
-                  onClick={handleExportDocx}
-                  disabled={!(transcription || summary || (keyPoints && keyPoints.length))}
-                  title={!(transcription || summary || (keyPoints && keyPoints.length)) ? "Nothing to export" : "Export all output to DOCX"}
-                >
-                  Export DOCX (Transcription, Summary, Key Points)
-                </button>
-              </div>
-            
-              <br />
-              <br />
-          </div>
-        </main>
-      )}
 
-      <FooterAd />
-    </div>
-  </div>
-  </ClickSpark>
+        {/* Route-based page content */}
+        <Routes>
+          <Route 
+            path="/" 
+            element={
+              <>
+              {/* Header & Toast are only rendered on the "/" route */}
+              <Header 
+                user={user} 
+                setUser={setUser} 
+                seconds={seconds}
+                setSeconds={setSeconds}
+                onLogout={() => setUser(null)} 
+              />
+              <ToastContainer position="top-center" autoClose={3000} />
+              
+              
+              <main>
+                {user && (
+                  <>
+                    <div className="upload-area">
+                      <input 
+                        className="cursor-target" 
+                        type="file" 
+                        accept="audio/*,video/*, .mp4, .m4a, .acc, audio/mp4, audio/aac, audio/x-m4a, audio/mp3, audio/x-mp3" 
+                        onChange={handleFileChange} 
+                      />
+                      <button className="cursor-target" onClick={handleUpload}>
+                        Upload and Transcribe
+                      </button>
+                    </div>
+
+                    {loading && (
+                      <div className="loading-animation">
+                        <span>🎤 TRANSCRIBING</span>
+                        <span className="dot">.</span>
+                        <span className="dot">.</span>
+                        <span className="dot">.</span>
+                      </div>
+                    )}
+
+                    {!loading && !transcription && (
+                      <div className="no-output">
+                        <p>No transcription available. Please upload an audio file.</p>
+                      </div>
+                    )}
+
+                    <LiveRecorder
+                      user={user}
+                      setTranscription={setTranscription}
+                      setSummary={setSummary}
+                      setKeyPoints={setKeyPoints}
+                      setSeconds={setSeconds}
+                      setLoading={setLoading}
+                    />
+
+                    <div className="output-container">
+                      <div className="transcription-box">
+                        <h2>Transcription</h2>
+                        <p>{transcription}</p>
+                      </div>
+                      <div className="summary-box">
+                        <h2>Summary</h2>
+                        <p>{summary}</p>
+                      </div>
+                      <div className="keypoints-box">
+                        <h2>Key Points</h2>
+                        {keyPoints.length ? (
+                          <ol>
+                            {keyPoints.map((point, i) => (
+                              <li key={i}>{point}</li>
+                            ))}
+                          </ol>
+                        ) : (
+                          <p>No key points available.</p>
+                        )}
+                      </div>
+
+                      {/* Buttons */}
+                      <div id="actionButtons" className="action-buttons" style={{ marginTop: 12 }}>
+                        <button
+                          id="copyBtn"
+                          className="cursor-target"
+                          onClick={handleCopyTranscription}
+                          disabled={!transcription}
+                          title={!transcription ? "No transcription to copy" : "Copy transcription to clipboard"}
+                          style={{ marginRight: 8 }}
+                        >
+                          Copy Transcription
+                        </button>
+
+                        <button
+                          id="exportBtn"
+                          className="cursor-target"
+                          onClick={handleExportDocx}
+                          disabled={!(transcription || summary || (keyPoints && keyPoints.length))}
+                          title={!(transcription || summary || (keyPoints && keyPoints.length)) ? "Nothing to export" : "Export all output to DOCX"}
+                        >
+                          Export DOCX (Transcription, Summary, Key Points)
+                        </button>
+                      </div>
+                      <br /><br />
+                    </div>
+                  </>
+                )}
+              </main>
+              </>
+            } 
+          />
+
+          <Route path="/packages" element={<PackagePage />} />
+        </Routes>
+
+        {/* Footer */}
+        <FooterAd />
+      </div>
+    </ClickSpark>
   </>
 );
+
 }
 
 export default App;
