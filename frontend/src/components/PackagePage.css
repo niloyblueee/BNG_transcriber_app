@@ -1,0 +1,53 @@
+/* container that holds the Particles component */
+.package-particles-container {
+    width: 100%;
+    height: 800px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* overlay that sits above particles */
+.package-overlay {
+    top: 0;
+    position: absolute;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+/* main title inside GradientText */
+.package-title {
+    font-size: 2.9rem;
+    font-weight: bold;
+    padding: 30px;
+}
+
+/* box around price/minutes area */
+.package-info-box {
+    display: inline-block;
+    position: relative;
+}
+
+/* small emphasized spans */
+.pkg-emphasis {
+    color: lightgrey;
+    font-weight: bold;
+}
+
+/* warning / danger text */
+.danger {
+    color: #e53e3e;
+    font-weight: bold;
+}
+
+/* highlight for the required amount text */
+.pkg-highlight {
+    color: lightgreen;
+    font-weight: bold;
+}

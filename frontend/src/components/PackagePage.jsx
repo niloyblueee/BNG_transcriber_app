@@ -4,6 +4,7 @@ import GradientText from './styling/GradientText.jsx';
 import Particles from './styling/Particles.jsx';
 import { Provider } from "./ui/provider";
 import React, { useState } from "react";
+import './PackagePage.css'; // added CSS import
 
 /*Place Order button at line 131*/
 
@@ -50,7 +51,7 @@ const PackagePage = () => {
     return (
         <>
             <Provider>
-                <div style={{ width: '100%', height: '800px', position: 'relative', alignItems: 'center' }}>
+                <div className="package-particles-container">
                     <Particles
                         particleColors={['#ffffff', '#ffffff']}
                         particleCount={200}
@@ -62,14 +63,14 @@ const PackagePage = () => {
                         disableRotation={false}
                     />
                 </div >
-                <div style={{ top: "0", position: "absolute", zIndex: 1, alignItems: "center", width: "100%", height: "100%" }}>
+                <div className="package-overlay">
                     <GradientText
                         colors={["#ffffffff", "#737373ff", "#ffffffff", "#717171ff", "#ffffffff"]}
                         animationSpeed={3}
                         showBorder={false}
                         className="custom-class"
                     >
-                        <div style={{ fontSize: "2.9rem", fontWeight: "bold", padding: "30px" }}>Buy your Package!</div>
+                        <div className="package-title">Buy your Package!</div>
                     </GradientText>
                     <Stack gap="4" direction="row" wrap="wrap" padding="4" justifyContent={"center"}>
                         <For each={pack}>
@@ -80,7 +81,7 @@ const PackagePage = () => {
                                         <Card.Description>
                                             {variant[4]}
                                         </Card.Description>
-                                        <Box display="inline-block" pos="relative"/*bg="bg" shadow="md" borderRadius="md" padding="2" mt="2" justifyItems={"center"}*/>
+                                        <Box className="package-info-box">
                                             <Card.Title>{variant[2]} Words - Price: {variant[3]}<span>&#2547;</span></Card.Title>
                                             <Card.Title>{variant[1]} minutes</Card.Title>
                                             <Card.Description>
@@ -103,13 +104,13 @@ const PackagePage = () => {
                                                             <Card.Title mb="2" fontWeight={"bold"} fontSize={"1.5rem"}>bKash payment:</Card.Title>
                                                             <Card.Description>
                                                                 <br />
-                                                                1. Open up the <span style={{ color: 'lightgrey', fontWeight: 'bold' }}> Bkash</span> app & choose <span className="danger">"Send Money"</span> (BE CAREFUL IT'S A PERSONAL ACCOUNT)<br />
-                                                                2. Enter the <span style={{ color: 'lightgrey', fontWeight: 'bold' }}> Bkash</span>  Account Number, which is given below<br />
+                                                                1. Open up the <span className="pkg-emphasis">Bkash</span> app & choose <span className="danger">"Send Money"</span> (BE CAREFUL IT'S A PERSONAL ACCOUNT)<br />
+                                                                2. Enter the <span className="pkg-emphasis">Bkash</span>  Account Number, which is given below<br />
                                                                 3. Enter the exact amount and confirm the transaction<br />
-                                                                4. After sending money, you'll receive a <span style={{ color: 'lightgrey', fontWeight: 'bold' }}> Bkash</span>  Transaction ID (TRX ID). Also provide that below<br />
-                                                                <span style={{ color: 'lightgreen', fontWeight: 'bold' }}>You need to send us: {variant[3]} TK</span><br />
+                                                                4. After sending money, you'll receive a <span className="pkg-emphasis">Bkash</span>  Transaction ID (TRX ID). Also provide that below<br />
+                                                                <span className="pkg-highlight">You need to send us: {variant[3]} TK</span><br />
                                                                 Account type: PERSONAL<br />
-                                                                <Clipboard.Root value="01700000000">
+                                                                <Clipboard.Root value="01799937774">
                                                                     <Clipboard.Trigger asChild>
                                                                         <Link as="span" color="blue.fg" textStyle="sm">
                                                                             <Card.Description>Account Number: </Card.Description>

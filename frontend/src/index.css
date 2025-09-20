@@ -17,6 +17,20 @@ body {
   width: 100%;
 }
 
+/* Chakra UI Popover override: make the full popover body grey */
+.chakra-popover__content,
+.chakra-popover__body {
+  background-color: #2f2f2f !important; /* dark grey */
+  color: #f5f5f5 !important; /* light text for contrast */
+}
+
+/* Ensure inputs and labels inside popover remain readable */
+.chakra-popover__body input,
+.chakra-popover__body textarea,
+.chakra-popover__body label {
+  color: #f5f5f5 !important;
+}
+
 #root {
     width: 100%;
     padding: 1rem;
