@@ -13,13 +13,13 @@
 }
 
 .adImage {
-  height: 60px;
+  height: 40px;
   max-width: 100%;
   object-fit: contain;
 }
 
 @media screen and (max-width: 480px) {
   .adImage {
-    height: 45px;
+    height: 20px;
   }
 }

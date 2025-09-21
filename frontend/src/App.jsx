@@ -12,6 +12,7 @@ import { Route, Routes } from 'react-router-dom';
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
 import PackagePage from './components/PackagePage';
+import Sidebar from './Sidebar'; // new
 
 
 //import Authwrapper from './AuthWrapper/Authwrapper.jsx';
@@ -27,7 +28,8 @@ function App() {
   const [user, setUser] = useState("");
   const [loading, setLoading] = useState(false); 
   const [seconds, setSeconds] = useState(0);
-
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [historyList, setHistoryList] = useState([]);
 
 
   const handleFileChange = (e) => {
@@ -164,6 +166,40 @@ const handleExportDocx = async () => {
 
 
 
+  const toggleSidebar = async () => {
+    const willOpen = !showSidebar;
+    setShowSidebar(willOpen);
+    if (willOpen && user && user.email) {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/get_history`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: user.email })
+        });
+        const json = await res.json();
+        if (res.ok) {
+          setHistoryList(json.history || []);
+        } else {
+          console.error("Failed to fetch history:", json.error);
+          setHistoryList([]);
+        }
+      } catch (err) {
+        console.error("History fetch error:", err);
+        setHistoryList([]);
+      }
+    }
+  };
+
+  const handleSelectHistory = (entry) => {
+    // load selected history entry into main view
+    setTranscription(entry.transcription || "");
+    setSummary(entry.summary || "");
+    setKeyPoints(entry.keypoints || []);
+    setShowSidebar(false);
+  };
+
+
+
 if (!user) {
   return (
 
@@ -222,6 +258,8 @@ return (
     >
       <div style={{ position: "relative", minHeight: "100vh", zIndex: 2 }}> 
 
+
+
         <TargetCursor 
           spinDuration={2}
           hideDefaultCursor={true}
@@ -258,8 +296,27 @@ return (
                 onLogout={() => setUser(null)} 
               />
               <ToastContainer position="top-center" autoClose={3000} />
-              
-              
+                {/* Toggle Sidebar button (floating) */}
+                <button
+                  onClick={toggleSidebar}
+                  className='cursor-target history-btn'
+                  title="Toggle history"
+                  style={{
+                    display: showSidebar ? 'none' : 'block', // <-- hide when sidebar is open
+
+                  }}
+                >
+                  History
+                </button>
+
+                {/* Sidebar component */}
+                <Sidebar
+                  visible={showSidebar}
+                  onClose={() => setShowSidebar(false)}
+                  history={historyList}
+                  onSelect={handleSelectHistory}
+                />
+                      
               <main>
                 {user && (
                   <>
@@ -270,7 +327,7 @@ return (
                         accept="audio/*,video/*, .mp4, .m4a, .acc, audio/mp4, audio/aac, audio/x-m4a, audio/mp3, audio/x-mp3" 
                         onChange={handleFileChange} 
                       />
-                      <button className="cursor-target" onClick={handleUpload}>
+                      <button className="cursor-target Upload-btn" onClick={handleUpload}>
                         Upload and Transcribe
                       </button>
                     </div>

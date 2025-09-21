@@ -107,6 +107,12 @@ button:focus-visible {
   background-color: #2a2a2a;
 }
 
+.buy-tokens-btn {
+  position: relative;
+  top: 40px;
+  left: -87px;
+}
+
 .account-section {
   position: relative; /* Needed for profile menu positioning */
 }
@@ -118,6 +124,8 @@ button:focus-visible {
   cursor: pointer;
   border: 2px solid transparent;
   transition: all 0.2s; /* Transition all properties */
+  position: relative;
+  right: 11px;
 }
 
 .user-avatar:hover {
@@ -162,8 +170,31 @@ button:focus-visible {
   background-color: #4a4a4c;
 }
 
+.upload-area{
+  position: relative;
+  top: -34px;
+  left: 22px;
+}
 
+.Upload-btn{
+  position: relative;
+  top: 6px;
+  left: -36px;
+}
 
+  .history-btn{
+    position: relative;
+    right: -332px;
+    top: -349px;
+    z-index: 2000;
+    background: #111;
+    color: #fff;
+    border: none;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    opacity: 0.9;
+  }
 /* --- Desktop-Specific Adjustments --- */
 @media screen and (min-width: 769px) {
   /* Make the user avatar bigger on desktop */
@@ -178,5 +209,33 @@ button:focus-visible {
 
   .token-section .buy-tokens-btn {
     font-size: 0.9em;
+  }
+  .upload-area{
+  position: relative;
+  top: -34px;
+  left: 22px;
+  }
+
+  .Upload-btn{
+    position: relative;
+    top: 2px;
+    left: 10px;
+  }
+  .history-btn{
+    position: relative;
+    right: -1578px;
+    top: -307px;
+    z-index: 2000;
+    background: #111;
+    color: #fff;
+    border: none;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    opacity: 0.9;
+  }
+  .action-buttons{
+    position: relative;
+    right: -565px;
   }
 }
