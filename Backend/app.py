@@ -34,6 +34,9 @@ import tempfile
 import os
 import math
 import imageio_ffmpeg as ffmpeg
+import json  # <-- added for keypoints serialization
+from datetime import datetime  # <-- added for timestamps
+
 
 app = Flask(__name__)
 
@@ -341,7 +344,10 @@ def transcribe_smart_chunk():
         summary = generate_summary_with_gpt_mini(full_transcript)
         keyPoints = generate_keypoints_with_gpt_mini(full_transcript)
         #corrected = fix_spelling(full_transcript)
+        #UPDATE THE USER HISTORY
+        add_user_history(email, full_transcript, summary, keyPoints)
 
+        
         return jsonify(
             #transcription=corrected,
             transcription=full_transcript,
@@ -383,9 +389,143 @@ def get_user_from_db(email, name=None):
             cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
             user = cursor.fetchone()
         return user
+    
     finally:
         cursor.close()
         conn.close()
+
+def get_user_history(email):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # Prefer single aggregated row for the user
+        cursor.execute("SELECT * FROM user_history WHERE email = %s LIMIT 1", (email,))
+        row = cursor.fetchone()
+        if not row:
+            # backward compatibility: if there are multiple rows (older behavior), return them
+            cursor.execute("SELECT * FROM user_history WHERE email = %s ORDER BY created_at DESC", (email,))
+            rows = cursor.fetchall()
+            history = []
+            for r in rows:
+                kp = r.get("keypoints")
+                try:
+                    parsed_kp = json.loads(kp) if kp and isinstance(kp, str) else kp or []
+                except Exception:
+                    parsed_kp = kp.split(",") if isinstance(kp, str) else kp or []
+                history.append({
+                    "id": r.get("id"),
+                    "email": r.get("email"),
+                    "transcription": r.get("transcription"),
+                    "summary": r.get("summary"),
+                    "keypoints": parsed_kp,
+                    "created_at": r.get("created_at"),
+                })
+            return history
+
+        # If row exists, try to interpret 'transcription' as aggregated JSON history
+        stored = row.get("transcription")
+        if isinstance(stored, str) and stored.startswith("["):
+            try:
+                entries = json.loads(stored)
+                # ensure keypoints are lists
+                for e in entries:
+                    if isinstance(e.get("keypoints"), str):
+                        try:
+                            e["keypoints"] = json.loads(e["keypoints"])
+                        except Exception:
+                            e["keypoints"] = e["keypoints"].split(",") if e["keypoints"] else []
+                return entries
+            except Exception:
+                # fall through to legacy parsing
+                pass
+
+        # Legacy single-row (not aggregated) -> return a single-entry history
+        kp = row.get("keypoints")
+        try:
+            parsed_kp = json.loads(kp) if kp and isinstance(kp, str) else kp or []
+        except Exception:
+            parsed_kp = kp.split(",") if isinstance(kp, str) else kp or []
+
+        return [{
+            "id": row.get("id"),
+            "email": row.get("email"),
+            "transcription": row.get("transcription"),
+            "summary": row.get("summary"),
+            "keypoints": parsed_kp,
+            "created_at": row.get("created_at"),
+        }]
+    finally:
+        cursor.close()
+        conn.close()
+
+def add_user_history(email, transcription, summary, keypoints):
+    """
+    Append a new history entry into a single row per user.
+    - If a user_history row exists for the email, try to parse an existing JSON array
+      stored in `transcription` and append the new entry; otherwise convert legacy
+      values into the array and update that row.
+    - If no row exists, INSERT one with transcription field containing a JSON array.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id, transcription, summary, keypoints, created_at FROM user_history WHERE email = %s LIMIT 1", (email,))
+        row = cursor.fetchone()
+
+        new_entry = {
+            "transcription": transcription or "",
+            "summary": summary or "",
+            "keypoints": keypoints if isinstance(keypoints, (list, tuple)) else (json.loads(keypoints) if (isinstance(keypoints, str) and keypoints.startswith("[")) else (keypoints or [])),
+            "created_at": datetime.utcnow().isoformat()
+        }
+
+        if row:
+            stored = row.get("transcription")
+            # Try parse as JSON array
+            entries = None
+            if isinstance(stored, str) and stored.strip().startswith("["):
+                try:
+                    entries = json.loads(stored)
+                except Exception:
+                    entries = None
+
+            if entries is None:
+                # Convert legacy single-row values into a list if there is any content
+                legacy_entries = []
+                if stored and stored.strip():
+                    legacy_kp = row.get("keypoints")
+                    try:
+                        parsed_kp = json.loads(legacy_kp) if legacy_kp and isinstance(legacy_kp, str) and legacy_kp.strip().startswith("[") else (legacy_kp.split(",") if isinstance(legacy_kp, str) and legacy_kp else legacy_kp or [])
+                    except Exception:
+                        parsed_kp = legacy_kp.split(",") if isinstance(legacy_kp, str) and legacy_kp else legacy_kp or []
+                    legacy_entries.append({
+                        "transcription": stored,
+                        "summary": row.get("summary") or "",
+                        "keypoints": parsed_kp,
+                        "created_at": row.get("created_at").isoformat() if isinstance(row.get("created_at"), (datetime,)) else (row.get("created_at") or "")
+                    })
+                entries = legacy_entries
+
+            entries.append(new_entry)
+            # store aggregated JSON in transcription field (keeps schema unchanged)
+            cursor.execute(
+                "UPDATE user_history SET transcription = %s, summary = %s, keypoints = %s, created_at = NOW() WHERE id = %s",
+                (json.dumps(entries, ensure_ascii=False), summary or "", json.dumps(new_entry["keypoints"], ensure_ascii=False), row["id"])
+            )
+            conn.commit()
+            return
+
+        # no existing row -> insert one with transcription containing JSON array
+        cursor.execute(
+            "INSERT INTO user_history (email, transcription, summary, keypoints) VALUES (%s, %s, %s, %s)",
+            (email, json.dumps([new_entry], ensure_ascii=False), summary or "", json.dumps(new_entry["keypoints"], ensure_ascii=False))
+        )
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
+
 
 def update_user_free_seconds(user_id, new_seconds_count):
     conn = get_db_connection()
@@ -425,37 +565,6 @@ def fix_spelling(transcription: str) -> str:
         print("❌ Spell correction failed:", e)
         return transcription
 
-"""
-def summarize_with_gpt_mini(text: str) -> tuple[str, list[str]]:
-    prompt = (
-        "in few lines Summarize the transcription of the audio and give key points in the language of the transcription. \n\n"
-        f"টেক্সট:\n{text}"
-    )
-    resp = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {
-                "role": "system",
-                "content": "You are a helpful assistant that summarizes text."
-            },
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.3
-    )
-    out = resp.choices[0].message.content.strip()
-    print(out)
-    parts = out.split("\n", 1)
-    summary = parts[0].strip()
-    bullet_block = parts[1] if len(parts) > 1 else ""
-    print(bullet_block)
-    keyPoints = [
-        line.lstrip("–- ").strip()
-        for line in bullet_block.splitlines()
-        if line.strip()
-    ]
-    return summary, keyPoints
-"""
-
 def generate_summary_with_gpt_mini(text: str) -> str:
     prompt = (
         "In a few lines, summarize the transcription of the audio. make sure the language is the same as the language of the transcription.\n\n"
@@ -493,8 +602,6 @@ def generate_keypoints_with_gpt_mini(text: str) -> list[str]:
         if line.strip()
     ]
     return keyPoints
-
-
 
 
 
@@ -781,6 +888,20 @@ def railway_debug():
         out["eleven_error"] = str(e)
 
     return out
+
+# New endpoint to fetch user history by email
+@app.route("/get_history", methods=["POST"])
+def get_history():
+    data = request.get_json() or request.form or {}
+    email = data.get("email")
+    if not email:
+        return jsonify({"error": "No email provided"}), 400
+    try:
+        history = get_user_history(email)
+        return jsonify({"history": history}), 200
+    except Exception as e:
+        print("Error fetching history:", e)
+        return jsonify({"error": str(e)}), 500
 
 
 
