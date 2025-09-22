@@ -5,6 +5,8 @@ import Particles from './styling/Particles.jsx';
 import { Provider } from "./ui/provider";
 import React, { useState } from "react";
 import './PackagePage.css'; // added CSS import
+import { ToastContainer, toast } from "react-toastify";
+
 
 /*Place Order button at line 131*/
 
@@ -46,6 +48,31 @@ var pack = [
         <div style={{ fontSize: "1rem", fontWeight: "bold" }}>15% DISCOUNT!</div>
     </GradientText >]
 ]
+    async function handleButtonClick() {
+        const n1El = document.getElementById('SenderBkashNumber');
+        const n2El = document.getElementById('SenderBkashTxnID');
+
+        const n1 = n1El ? n1El.value.trim() : '';
+        const n2 = n2El ? n2El.value.trim() : '';
+
+        
+        if (!n1) {
+            toast.error('Please enter your Bkash Account Number.');
+            if (n1El) n1El.focus();
+            return;
+        }
+        if (!n2) {
+            toast.error('Please enter the Bkash Transaction ID.');
+            if (n2El) n2El.focus();
+            return;
+        }
+        // Send data to the backend
+    await fetch(`${import.meta.env.VITE_BACKEND_URL}/send_button_click`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ SenderBkashNumber: n1, SenderBkashTxnID: n2 })
+    });
+}
 
 const PackagePage = () => {
     return (
@@ -123,13 +150,19 @@ const PackagePage = () => {
                                                             <Stack gap="4">
                                                                 <Field.Root>
                                                                     <Field.Label>Your Bkash Account Number</Field.Label>
-                                                                    <Input placeholder="01XXXXXXXXX" />
+                                                                    <Input placeholder="01XXXXXXXXX" id="SenderBkashNumber" required />
                                                                 </Field.Root>
                                                                 <Field.Root>
                                                                     <Field.Label>Bkash Transaction ID</Field.Label>
-                                                                    <Input placeholder="Txn ID" />
+                                                                    <Input placeholder="Txn ID" id="SenderBkashTxnID"  required />
                                                                 </Field.Root>
-                                                                <Button backgroundColor={"blue.600"} _hover={{ bg: "blue.500" }}><ShinyText text="Place Order" disabled={false} speed={1.7} className='custom-class' /></Button>
+
+                                                                <Button backgroundColor={"blue.600"} _hover={{ bg: "blue.500" }} onClick={handleButtonClick}>
+                                                                    <ShinyText text="Place Order" disabled={false} speed={1.7} className='custom-class' />
+                                                                
+                                                                </Button>
+                                                            
+                                                            
                                                             </Stack>
                                                         </Popover.Body>
                                                         <Popover.CloseTrigger />

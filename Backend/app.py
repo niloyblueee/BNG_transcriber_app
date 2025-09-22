@@ -904,6 +904,33 @@ def get_history():
         return jsonify({"error": str(e)}), 500
 
 
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+
+def send_telegram_message(message):
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": message,
+        "parse_mode": "HTML"
+    }
+
+    response = requests.post(url, json=payload)
+    return response.json()
+
+@app.route("/send_button_click", methods=["POST"])
+def send_button_click():
+    data = request.json
+    n1 = data.get('SenderBkashNumber')
+    n2 = data.get('SenderBkashTxnID')
+
+    # Compose message
+    message = f"*Button Clicked!*\nNumber1: {n1}\nNumber2: {n2}"
+
+    # Send Telegram notification
+    result = send_telegram_message(message)
+
+    return jsonify({'status': 'ok', 'telegram': result})
 
 if __name__ == "__main__":
     app.run(debug=True)
