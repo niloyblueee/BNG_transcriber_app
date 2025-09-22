@@ -50,9 +50,9 @@ const PackagePage = () => {
     const [openIndex, setOpenIndex] = useState(null);
 
     // handle button click inside component so we can close popover
-    async function handleButtonClick() {
-        const n1El = document.getElementById('SenderBkashNumber');
-        const n2El = document.getElementById('SenderBkashTxnID');
+    async function handleButtonClick(idx) {
+        const n1El = document.getElementById(`SenderBkashNumber-${idx}`);
+        const n2El = document.getElementById(`SenderBkashTxnID-${idx}`);
 
         const n1 = n1El ? n1El.value.trim() : '';
         const n2 = n2El ? n2El.value.trim() : '';
@@ -167,14 +167,14 @@ const PackagePage = () => {
                                                             <Stack gap="4">
                                                                 <Field.Root>
                                                                     <Field.Label>Your Bkash Account Number</Field.Label>
-                                                                    <Input placeholder="01XXXXXXXXX" id="SenderBkashNumber" required />
+                                                                    <Input placeholder="01XXXXXXXXX" id={`SenderBkashNumber-${idx}`} required />
                                                                 </Field.Root>
                                                                 <Field.Root>
                                                                     <Field.Label>Bkash Transaction ID</Field.Label>
-                                                                    <Input placeholder="Txn ID" id="SenderBkashTxnID"  required />
+                                                                    <Input placeholder="Txn ID" id={`SenderBkashTxnID-${idx}`}  required />
                                                                 </Field.Root>
 
-                                                                <Button backgroundColor={"blue.600"} _hover={{ bg: "blue.500" }} onClick={handleButtonClick}>
+                                                                <Button backgroundColor={"blue.600"} _hover={{ bg: "blue.500" }} onClick={() => handleButtonClick(idx)}>
                                                                     <ShinyText text="Place Order" disabled={false} speed={1.7} className='custom-class' />
                                                                 </Button>
                                                             </Stack>
