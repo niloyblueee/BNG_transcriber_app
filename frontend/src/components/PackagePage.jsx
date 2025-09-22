@@ -1,4 +1,4 @@
-import { Box, Button, Card, CardDescription, For, Stack } from "@chakra-ui/react"
+import { Box, Button, Card, CardDescription, Stack } from "@chakra-ui/react"
 import ShinyText from './styling/ShinyText.jsx';
 import GradientText from './styling/GradientText.jsx';
 import Particles from './styling/Particles.jsx';
@@ -6,10 +6,6 @@ import { Provider } from "./ui/provider";
 import React, { useState } from "react";
 import './PackagePage.css'; // added CSS import
 import { ToastContainer, toast } from "react-toastify";
-
-
-/*Place Order button at line 131*/
-
 import { Clipboard, Link } from "@chakra-ui/react"
 import {
     Field,
@@ -48,6 +44,12 @@ var pack = [
         <div style={{ fontSize: "1rem", fontWeight: "bold" }}>15% DISCOUNT!</div>
     </GradientText >]
 ]
+
+const PackagePage = () => {
+    // add controlled popover state
+    const [openIndex, setOpenIndex] = useState(null);
+
+    // handle button click inside component so we can close popover
     async function handleButtonClick() {
         const n1El = document.getElementById('SenderBkashNumber');
         const n2El = document.getElementById('SenderBkashTxnID');
@@ -55,7 +57,6 @@ var pack = [
         const n1 = n1El ? n1El.value.trim() : '';
         const n2 = n2El ? n2El.value.trim() : '';
 
-        
         if (!n1) {
             toast.error('Please enter your Bkash Account Number.');
             if (n1El) n1El.focus();
@@ -66,18 +67,29 @@ var pack = [
             if (n2El) n2El.focus();
             return;
         }
-        // Send data to the backend
-    await fetch(`${import.meta.env.VITE_BACKEND_URL}/send_button_click`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ SenderBkashNumber: n1, SenderBkashTxnID: n2 })
-    });
-}
 
-const PackagePage = () => {
+        try {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/send_button_click`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ SenderBkashNumber: n1, SenderBkashTxnID: n2 })
+            });
+            if (!res.ok) throw new Error('Network response not ok');
+
+            // on success: close popover, show success toast, clear inputs
+            setOpenIndex(null);
+            toast.success('Order placed');
+            if (n1El) n1El.value = '';
+            if (n2El) n2El.value = '';
+        } catch (err) {
+            toast.error('Failed to place order. Please try again.');
+        }
+    }
+
     return (
         <>
             <Provider>
+                <ToastContainer position="top-right" autoClose={3000} />
                 <div className="package-particles-container">
                     <Particles
                         particleColors={['#ffffff', '#ffffff']}
@@ -100,9 +112,10 @@ const PackagePage = () => {
                         <div className="package-title">Buy your Package!</div>
                     </GradientText>
                     <Stack gap="4" direction="row" wrap="wrap" padding="4" justifyContent={"center"}>
-                        <For each={pack}>
-                            {(variant) => (
-                                <Card.Root width="320px" variant={variant} key={variant} shadow="lg" borderRadius="lg" overflow="hidden">
+                        {
+                            // replace For with map to obtain index for controlled popover
+                            pack.map((variant, idx) => (
+                                <Card.Root width="320px" variant={variant} key={variant + idx} shadow="lg" borderRadius="lg" overflow="hidden">
                                     <Card.Body gap="2">
                                         <Card.Title mb="2" fontWeight={"bold"} fontSize={"1.5rem"}>{variant[0]}</Card.Title>
                                         <Card.Description>
@@ -119,7 +132,11 @@ const PackagePage = () => {
                                     </Card.Body>
                                     <Card.Footer justifyContent="flex-end">
                                         {variant[5]}
-                                        <Popover.Root>
+                                        <Popover.Root
+                                            // controlled popover for this card
+                                            open={openIndex === idx}
+                                            onOpenChange={(isOpen) => setOpenIndex(isOpen ? idx : null)}
+                                        >
                                             <Popover.Trigger asChild>
                                                 <Button backgroundColor={"orange.700"} _hover={{ bg: "orange.600" }}><ShinyText text="Buy Now!" disabled={false} speed={1.7} className='custom-class' /></Button>
                                             </Popover.Trigger>
@@ -159,10 +176,7 @@ const PackagePage = () => {
 
                                                                 <Button backgroundColor={"blue.600"} _hover={{ bg: "blue.500" }} onClick={handleButtonClick}>
                                                                     <ShinyText text="Place Order" disabled={false} speed={1.7} className='custom-class' />
-                                                                
                                                                 </Button>
-                                                            
-                                                            
                                                             </Stack>
                                                         </Popover.Body>
                                                         <Popover.CloseTrigger />
@@ -174,8 +188,8 @@ const PackagePage = () => {
 
                                     </Card.Footer>
                                 </Card.Root>
-                            )}
-                        </For>
+                            ))
+                        }
                     </Stack>
 
                 </div>
