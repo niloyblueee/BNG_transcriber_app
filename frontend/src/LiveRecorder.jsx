@@ -66,6 +66,10 @@ export default function LiveRecorder({ user, setTranscription, setSummary, setKe
   const chunksRef = useRef([]);
   const streamRef = useRef(null);
 
+  // add refs to coordinate onstop completion
+  const savedResolveRef = useRef(null);
+  const savedPromiseRef = useRef(null);
+
   useEffect(() => {
     return () => {
       if (streamRef.current) {
@@ -86,6 +90,9 @@ export default function LiveRecorder({ user, setTranscription, setSummary, setKe
       const mr = new MediaRecorder(stream, options);
       mediaRecorderRef.current = mr;
       chunksRef.current = [];
+
+      // create a promise that will be resolved when onstop processing completes
+      savedPromiseRef.current = new Promise(resolve => { savedResolveRef.current = resolve; });
 
       mr.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
@@ -115,6 +122,13 @@ export default function LiveRecorder({ user, setTranscription, setSummary, setKe
         } catch (e) {
           console.warn(e);
         }
+
+        // resolve the promise so callers waiting for the stop+save know it's finished
+        if (savedResolveRef.current) {
+          savedResolveRef.current();
+          savedResolveRef.current = null;
+          savedPromiseRef.current = null;
+        }
       };
 
       mr.start();
@@ -124,6 +138,7 @@ export default function LiveRecorder({ user, setTranscription, setSummary, setKe
     }
   };
 
+  // stopRecording now returns a Promise that resolves after onstop processing completes
   const stopRecording = () => {
     try {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
@@ -133,8 +148,10 @@ export default function LiveRecorder({ user, setTranscription, setSummary, setKe
         streamRef.current.getTracks().forEach(t => t.stop());
         streamRef.current = null;
       }
+      return savedPromiseRef.current || Promise.resolve();
     } catch (e) {
       console.error("stopRecording error", e);
+      return Promise.resolve();
     }
   };
 
@@ -241,7 +258,17 @@ export default function LiveRecorder({ user, setTranscription, setSummary, setKe
             Play Preview
           </button>
 
-          <button className="cursor-target" id="btn_primary" onClick={uploadLastRecording} disabled={recording}>
+          <button className="cursor-target" id="btn_primary"
+            onClick={ async () => {
+              if (recording) {
+                // stopRecording returns a promise that resolves after save completes
+                await stopRecording();
+                console.log("stopped stopped");
+                await uploadLastRecording();
+              } else {
+                await uploadLastRecording();
+              }
+            } }>
             Upload & Transcribe
           </button>
 
