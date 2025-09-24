@@ -60,11 +60,15 @@ app = Flask(__name__, static_folder="dist", static_url_path="")
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 AudioSegment.converter = ffmpeg.get_ffmpeg_exe()
-
+"""
 @app.route("/")
 def serve_index():
     return send_from_directory(app.static_folder, "index.html")
 
+@app.route("/<path:path>")
+def serve_static(path):
+    return send_from_directory(app.static_folder, path)
+"""
 
 @app.route("/health", methods=["GET"])
 def health():
@@ -123,11 +127,26 @@ def debug_eleven():
         except OSError:
             pass
 
+# Serve React app for all other routes
+@app.route("/", defaults={"path": ""}, methods=["GET"])
+@app.route("/<path:path>", methods=["GET"])
+def serve(path):
+    # Only serve the React app for browser/HTML GET requests.
+    # Do NOT intercept API/JSON clients.
+    accept = request.headers.get("Accept", "")
+    # If the client prefers JSON (API calls) or path looks like an API, return 404 so Flask can match API routes.
+    if path.startswith("api") or ("application/json" in accept and "text/html" not in accept):
+        return jsonify({"error": "Not Found"}), 404
+
+    file_path = os.path.join(app.static_folder, path)
+    if path != "" and os.path.exists(file_path):
+        return send_from_directory(app.static_folder, path)
+
+    # Fallback to index.html for client-side routing
+    return send_from_directory(app.static_folder, "index.html")
         
 
-@app.route("/<path:path>")
-def serve_static(path):
-    return send_from_directory(app.static_folder, path)
+
 
 DEFAULT_FREE_SECONDS = int(os.getenv("DEFAULT_FREE_SECONDS", 30))
 

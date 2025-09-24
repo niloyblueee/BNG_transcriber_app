@@ -2,12 +2,30 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="microphone-svgrepo-com.svg" />
+    <link rel="icon" type="image/svg+xml" href="BranscriberLogo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BNG Transcriber</title>
+    <title>Branscriber</title>
+    <!-- PWA: manifest and theme -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#ffffff" />
+    <!-- Apple touch icon (falls back to svg if PNG not provided) -->
+    <link rel="apple-touch-icon" href="/BranscriberLogo.svg" />
+    <!-- Safari pinned tab (optional) -->
+    <link rel="mask-icon" href="/BranscriberLogo.svg" color="#000000" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <!-- Register service worker for offline support -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js').catch(function (err) {
+            // registration failed
+            console.warn('ServiceWorker registration failed:', err);
+          });
+        });
+      }
+    </script>
   </body>
 </html>
