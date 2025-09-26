@@ -441,7 +441,7 @@ def get_user_history(email):
                     "keypoints": parsed_kp,
                     "created_at": r.get("created_at"),
                 })
-            return history
+            return history.reverse()
 
         # If row exists, try to interpret 'transcription' as aggregated JSON history
         stored = row.get("transcription")
