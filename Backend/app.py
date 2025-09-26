@@ -335,7 +335,9 @@ def transcribe_smart_chunk():
 
                 headers = {"xi-api-key": os.getenv("ELEVEN_API_KEY")}
                 files = {"file": (uploaded_file.filename, open(chunk_file.name, "rb"), uploaded_file.mimetype)}
-                data = {"model_id": "scribe_v1"}
+                data = {"model_id": "scribe_v1",
+                        "diarize": True,
+                        "tag_audio_events": True}
 
                 response = pyrequests.post(
                     "https://api.elevenlabs.io/v1/speech-to-text",
