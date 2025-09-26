@@ -424,7 +424,7 @@ def get_user_history(email):
         row = cursor.fetchone()
         if not row:
             # backward compatibility: if there are multiple rows (older behavior), return them
-            cursor.execute("SELECT * FROM user_history WHERE email = %s ORDER BY updated_at DESC", (email,))
+            cursor.execute("SELECT * FROM user_history WHERE email = %s ORDER BY updated_at ASC", (email,))
             rows = cursor.fetchall()
             history = []
             for r in rows:
