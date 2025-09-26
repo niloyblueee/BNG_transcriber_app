@@ -136,7 +136,7 @@ function Header({ user, setUser, onLogout, seconds, setSeconds }) {
 
       {/* Main title and subtitle, including your TextType component */}
       <div className="title-section">
-        <h1>Transcriber</h1>
+        <h1>Branscriber</h1>
         <TextType
           text={["Transcribe your voice notes ALMOST immediately"]}
           as="p"
