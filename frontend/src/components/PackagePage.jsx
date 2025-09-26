@@ -17,8 +17,8 @@ import {
 
 
 var pack = [
-    ["Basic Pack", 5, 800, 10, "Perfect for quick consultations—experience the magic of our transcriber.", ''],
-    ["Pro Pack", 20, 3200, 38, "Ideal for concise, focused topic lectures.", <GradientText
+    ["Basic Pack", 5, 800, 4, "Perfect for quick consultations—experience the magic of our transcriber.", ''],
+    ["Pro Pack", 20, 3200, 18, "Ideal for concise, focused topic lectures.", <GradientText
         colors={["#ffffffff", "#737373ff", "#ffffffff", "#717171ff", "#ffffffff"]}
         animationSpeed={3}
         showBorder={false}
@@ -26,7 +26,7 @@ var pack = [
     >
         <div style={{ fontSize: "1rem", fontWeight: "bold" }}>5% DISCOUNT!</div>
     </GradientText>],
-    ["Mega Pack", 50, 8000, 90, "Boring class? Instantly turn it into an engaging one with our free summarization.", <GradientText
+    ["Mega Pack", 50, 8000, 45, "Boring class? Instantly turn it into an engaging one with our free summarization.", <GradientText
         colors={["#af9b00ff", "#ff0000ff", "#b3b600ff", "#fb0404ff", "#aa9c00ff"]}
         animationSpeed={3}
         showBorder={false}
@@ -34,9 +34,8 @@ var pack = [
     >
         <div style={{ fontSize: "1rem", fontWeight: "bold" }}>10% DISCOUNT!</div>
     </GradientText>],
-    ["Ultra Pack", 100, 16000, 170, "Effortlessly handle multiple lectures—your stress-free solution.", < GradientText
-        colors=
-        {["#6459fcff", "#54c8f9ff", "#48f745ff", "#ff5ab7ff", "#f3ff48ff"]}
+    ["Ultra Pack", 100, 16000, 90, "Effortlessly handle multiple lectures—your stress-free solution.", <GradientText
+        colors={["#6459fcff", "#54c8f9ff", "#48f745ff", "#ff5ab7ff", "#f3ff48ff"]}
         animationSpeed={3}
         showBorder={false}
         className="custom-class"
