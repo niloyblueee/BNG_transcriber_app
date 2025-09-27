@@ -588,13 +588,13 @@ def fix_spelling(transcription: str) -> str:
 
 def generate_summary_with_gpt_mini(text: str) -> str:
     prompt = (
-        "In a few lines, summarize the transcription of the audio. make sure the language is the same as the language of the transcription.\n\n"
+        "Task: 1. Produce a single English summary paragraph (max 200 words) that covers the full content and includes every valid event/action mentioned.2. Preserve the chronological order of events.3. Do NOT invent events, claims, or details. If you infer something, label it as 'inferred' and give a low/medium confidence. Output only the English summary paragraph\n\n"
         f"text:\n{text}"
     )
     resp = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant that summarizes text."},
+            {"role": "system", "content": "You are a careful, conservative summarizer. The input is a transcription in any language. Produce a faithful English summary that captures all valid events in the transcript, preserves chronological order, and never invents facts. When text is unclear or inaudible, explicitly mark it as uncertain."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.3
@@ -605,13 +605,13 @@ def generate_summary_with_gpt_mini(text: str) -> str:
 
 def generate_keypoints_with_gpt_mini(text: str) -> list[str]:
     prompt = (
-        "Extract the key points from the following transcription and return them as bullet points in the language of the transcription.\n\n"
+        "Extract the key points from the following transcription and return them as bullet points in the language of the transcription.- Include every valid event that should appear as a keypoint; do not invent or omit important events.- Keep keypoints brief and independent (each point should be understandable alone).\n\n"
         f"text:\n{text}"
     )
     resp = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant that extracts key points from text."},
+            {"role": "system", "content": "You are a concise extractor of keypoints from a transcription in any language. Produce a short, ordered list of discrete keypoints in English that together cover the important facts, actions, and decisions from the transcript. Each keypoint must be grounded in the transcript; do not invent or combine unrelated events."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.3
