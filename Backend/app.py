@@ -148,7 +148,7 @@ def serve(path):
 
 
 
-DEFAULT_FREE_SECONDS = int(os.getenv("DEFAULT_FREE_SECONDS", 30))
+DEFAULT_FREE_SECONDS = int(os.getenv("DEFAULT_FREE_SECONDS", 300))
 
 def split_on_silence_chunks(file_path, min_silence_len=700, silence_thresh=-40, keep_silence=300, max_chunk_len_ms=10*60*1000):
     """
