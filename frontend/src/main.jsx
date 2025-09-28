@@ -6,7 +6,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from './App.jsx'
 
 
-console.log("Loaded clientId:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
+//console.log("Loaded clientId:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

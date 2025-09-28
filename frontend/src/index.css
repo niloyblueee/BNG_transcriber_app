@@ -196,12 +196,49 @@ button:focus-visible {
   opacity: 0.9;
   }
 
+.custom-google-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #161616;
+  color: #fff;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform .15s ease, background .15s ease;
+}
+.custom-google-btn .google-icon {
+  width: 18px;
+  height: 18px;
+}
+.custom-google-btn:hover {
+  transform: translateY(-2px);
+  background: #111;
+}
+
+  .custom-google-btn-container {        
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3000;           /* ensure it floats above other elements */
+    display: flex;
+    justify-content: center;
+    width: auto;
+    pointer-events: auto;
+    margin-top: 0;
+  }
+
 /* --- Desktop-Specific Adjustments --- */
 @media screen and (min-width: 769px) {
   /* Make the user avatar bigger on desktop */
   .user-avatar {
-    width: 50px;
-    height: 50px;
+    width: 45px;
+    height: 45px;
   }
 
   .token-section .tokens {
@@ -241,5 +278,48 @@ button:focus-visible {
     gap: 10px;  
     margin-top: 33px;          
   }
-  
+    .custom-google-btn {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: #15151c;
+      color: #fff;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.06);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+      cursor: pointer;
+      transition: transform .15s ease, background .15s ease;
+      justify-content: center;
+    
+    }
+
+  .custom-google-btn:hover {
+    transform: translateY(-2px);
+    background: #111;
+  }
+  .custom-google-btn .google-icon {
+    width: 18px;
+    height: 18px;
+
+  }
+  .custom-google-btn-container {
+    /* keep identical centering on larger screens to avoid jumps */
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3000;
+    display: flex;
+    justify-content: center;
+    width: auto;
+    margin-top: 0;
+  }
+
+
+
+
+
+
 }

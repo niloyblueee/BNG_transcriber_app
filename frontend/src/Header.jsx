@@ -1,25 +1,62 @@
-import { GoogleLogin } from "@react-oauth/google";
-import { jwtDecode } from "jwt-decode";
+import { useGoogleLogin } from "@react-oauth/google";
+import googleIcon from "./assets/googleicon.svg";
+import {jwtDecode} from "jwt-decode";
 import React, { useState, useEffect, useRef } from "react";
 import TextType from "./TextType";
 import { useNavigate } from "react-router-dom";
-
+import './index.css';
 
 // Header component for the application
 // Displays user information, login/logout, and time balance.
 // Features a responsive design for mobile and desktop views.
 
 function Header({ user, setUser, onLogout, seconds, setSeconds }) {
+  // useGoogleLogin returns a function that starts the Google sign-in flow
+  const login = useGoogleLogin({
+    onSuccess: (credentialResponse) => handleSuccess(credentialResponse),
+    onError: () => console.error("Login Failed"),
+    flow: "implicit",
+  });
   // State to manage the visibility of the profile dropdown menu
   const [isProfileOpen, setProfileOpen] = useState(false);
   // Ref to detect clicks outside of the profile menu to close it
   const profileRef = useRef(null);
 
   const handleSuccess = async (credentialResponse) => {
-    const token = credentialResponse.credential;
-    const userInfo = jwtDecode(token);
+    // credentialResponse may contain credential (ID token) or access_token.
+    const idToken = credentialResponse?.credential ?? credentialResponse?.id_token;
+    const accessToken = credentialResponse?.access_token;
+
+    let userInfo = null;
+
+    if (idToken) {
+      try {
+        userInfo = jwtDecode(idToken);
+      } catch (err) {
+        console.error("Failed to decode ID token:", err, credentialResponse);
+        return;
+      }
+    } else if (accessToken) {
+      try {
+        const profileRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (!profileRes.ok) {
+          console.error("Failed to fetch user info with access token:", await profileRes.text());
+          return;
+        }
+        userInfo = await profileRes.json();
+      } catch (err) {
+        console.error("Error fetching user info:", err);
+        return;
+      }
+    } else {
+      console.error("No token returned from Google:", credentialResponse);
+      return;
+    }
+
     setUser(userInfo);
-    console.log("User info from Google:", userInfo);
+    //console.log("User info from Google:", userInfo);
 
     try {
       const res = await fetch(
@@ -123,13 +160,17 @@ function Header({ user, setUser, onLogout, seconds, setSeconds }) {
               )}
             </div>
           ) : (
-            // Display Google Login button if no user is logged in
-            <GoogleLogin
-              onSuccess={handleSuccess}
-              onError={() => {
-                console.error("Login Failed");
-              }}
-            />
+            // Custom styled button that triggers Google sign-in
+            <div className="custom-google-btn-container"> 
+              <button
+                className="custom-google-btn cursor-target"
+                onClick={() => login()}
+                aria-label="Sign in with Google"
+              >
+                <img src={googleIcon} className="google-icon" alt="Google" />
+                <span>Sign in with Google</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
