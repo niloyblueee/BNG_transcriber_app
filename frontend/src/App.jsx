@@ -146,6 +146,8 @@ const handleExportDocx = async () => {
             : [new Paragraph({ text: "No key points available." })]),
 
           new Paragraph({ text: `Generated: ${new Date().toLocaleString()}`, spacing: { before: 300 } }),
+          new Paragraph({ text: "Thank you for using our service!", spacing: { before: 300 } }),
+          new Paragraph({ text: "https://branscriber.up.railway.app", style: "Hyperlink" }),
         ],
       },
     ],
