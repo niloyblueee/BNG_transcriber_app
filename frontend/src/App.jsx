@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './App.css';
 import Header  from './Header';
 import { ToastContainer, toast } from "react-toastify";
@@ -30,8 +30,48 @@ function App() {
   const [seconds, setSeconds] = useState(0);
   const [showSidebar, setShowSidebar] = useState(false);
   const [historyList, setHistoryList] = useState([]);
+  const outputRef = useRef(null);
 
+  const prevRef = useRef({
+    transcription: "",
+    summary: "",
+    keyPoints: 0
+  })
 
+  useEffect(() => {
+  const prev = prevRef.current;
+  const hasNewTranscription = !prev.transcription && !!transcription;
+  const hasNewSummary = !prev.summary && !!summary;
+  const hasNewKeyPoints = prev.keyPointsLen === 0 && (keyPoints && keyPoints.length > 0);
+
+  if (hasNewTranscription || hasNewSummary || hasNewKeyPoints) {
+    // run scroll on next paint to ensure layout is ready
+    const rafId = requestAnimationFrame(() => {
+      try {
+        console.log("[App] Auto-scroll triggered:", { hasNewTranscription, hasNewSummary, hasNewKeyPoints });
+        if (outputRef.current) {
+          outputRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else {
+          console.warn("[App] outputRef.current is null");
+        }
+      } catch (err) {
+        console.error("[App] scrollIntoView error", err);
+      }
+    });
+
+    // cleanup in case effect re-runs quickly
+    return () => cancelAnimationFrame(rafId);
+  }
+
+  // update prev snapshot
+  prevRef.current = {
+    transcription,
+    summary,
+    keyPointsLen: keyPoints ? keyPoints.length : 0,
+  };
+}, [transcription, summary, keyPoints]);
+
+//------------------------------------------------
   const handleFileChange = (e) => {
     setSelectedFile(e.target.files[0]);
   };
@@ -358,7 +398,7 @@ return (
                       setLoading={setLoading}
                     />
 
-                    <div className="output-container">
+                    <div className="output-container" ref={outputRef}>
                       <div className="transcription-box">
                         <h2>Transcription</h2>
                         <p>{transcription}</p>

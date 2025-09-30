@@ -201,6 +201,8 @@ export default function LiveRecorder({ user, setTranscription, setSummary, setKe
         setKeyPoints(data.keyPoints || []);
         setSeconds(data.free_seconds_left ?? 0);
         setStatusMessage("Transcription complete.");
+        toast.success("Transcription successful!");
+
       } else if (res.status === 402) {
         setStatusMessage("Not enough free seconds. Please recharge.");
       } else {
@@ -261,7 +263,7 @@ export default function LiveRecorder({ user, setTranscription, setSummary, setKe
         }
 
         // we have a blob -> show success toast and proceed to upload
-        toast.success("Uploading recording for transcription.");
+        toast.success("Uploaded recording for transcription.");
         await uploadLastRecording();
       } catch (err) {
         console.error("handleUploadClick error:", err);
