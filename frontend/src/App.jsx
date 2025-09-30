@@ -336,7 +336,7 @@ return (
 
                     {loading && (
                       <div className="loading-animation">
-                        <span>🎤 TRANSCRIBING</span>
+                        <span className='loading-text'>🎤 TRANSCRIBING</span>
                         <span className="dot">.</span>
                         <span className="dot">.</span>
                         <span className="dot">.</span>

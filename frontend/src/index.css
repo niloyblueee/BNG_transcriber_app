@@ -232,6 +232,9 @@ button:focus-visible {
     pointer-events: auto;
     margin-top: 0;
   }
+  .loading-text{
+    font-size: 30px;
+  }
 
 /* --- Desktop-Specific Adjustments --- */
 @media screen and (min-width: 769px) {

@@ -60,7 +60,6 @@
   align-items: center;
   flex-wrap: nowrap; /* keep them side-by-side where possible */
   margin-top: 12px;
-  z-index: 12000;
   position: relative;
 }
 
