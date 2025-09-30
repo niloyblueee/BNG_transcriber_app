@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import './LiveRecorder.css';
+import { toast } from "react-toastify";
 
 // LiveRecorder.jsx
 // Records audio via MediaRecorder, saves latest recording into IndexedDB,
@@ -171,6 +172,9 @@ export default function LiveRecorder({ user, setTranscription, setSummary, setKe
         setLoading(false);
         return;
       }
+      
+      
+      
 
       const filename = `live_recording_${Date.now()}.webm`;
       const file = new File([blob], filename, { type: blob.type || "audio/webm" });
@@ -180,7 +184,7 @@ export default function LiveRecorder({ user, setTranscription, setSummary, setKe
       formData.append("email", user.email);
       formData.append("name", user.name || "");
       formData.append("language", "bn");
-
+      
       setStatusMessage("Uploading to server... (this may take a while)");
 
       const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/transcribe_smart_chunk`, {
@@ -236,6 +240,36 @@ export default function LiveRecorder({ user, setTranscription, setSummary, setKe
     }
   };
 
+    // place this inside the LiveRecorder component, alongside other functions
+    const handleUploadClick = async () => {
+      try {
+        // If user is recording, stop first and wait for the onstop/save to finish
+        if (recording) {
+          setStatusMessage("Stopping recording and preparing upload...");
+          await stopRecording();
+          // savedPromise resolves after the blob is saved to IndexedDB
+        }
+
+        // Check IndexedDB for a saved recording
+        const blob = await getBlobFromIndexedDb(RECORDING_KEY);
+
+        if (!blob) {
+          // nothing to upload
+          toast.error("No recording found to upload.");
+          setStatusMessage("No saved recording found.");
+          return;
+        }
+
+        // we have a blob -> show success toast and proceed to upload
+        toast.success("Uploading recording for transcription.");
+        await uploadLastRecording();
+      } catch (err) {
+        console.error("handleUploadClick error:", err);
+        toast.error("Failed to start upload.");
+        setStatusMessage("Upload failed to start.");
+      }
+    };
+
   return (
     <div className={`live-recorder ${recording ? 'is-recording' : ''}`}>
       <div className="controls">
@@ -259,16 +293,7 @@ export default function LiveRecorder({ user, setTranscription, setSummary, setKe
           </button>
 
           <button className="cursor-target" id="btn_primary"
-            onClick={ async () => {
-              if (recording) {
-                // stopRecording returns a promise that resolves after save completes
-                await stopRecording();
-                console.log("stopped stopped");
-                await uploadLastRecording();
-              } else {
-                await uploadLastRecording();
-              }
-            } }>
+            onClick={handleUploadClick }>
             Upload & Transcribe
           </button>
 
