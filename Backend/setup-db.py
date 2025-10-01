@@ -19,8 +19,7 @@ def mysql_query():
     try:
         cursor.execute(
         """ALTER TABLE user_history
-ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-ON UPDATE CURRENT_TIMESTAMP;""")
+            MODIFY transcription LONGTEXT; """)
         conn.commit()
     finally:
         print("Sql Query has been executed!!")

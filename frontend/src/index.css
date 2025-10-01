@@ -170,7 +170,7 @@ button:focus-visible {
   background-color: #4a4a4c;
 }
 
-.upload-area{
+/*.upload-area{
   position: relative;
   top: -34px;
   left: 22px;
@@ -181,6 +181,7 @@ button:focus-visible {
   top: 6px;
   left: -36px;
 }
+*/
 
 .history-btn{
   position: relative;
@@ -235,6 +236,22 @@ button:focus-visible {
   .loading-text{
     font-size: 30px;
   }
+  .upload-area{
+    padding: 12px;
+    background: #16032dc5;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+    max-width: 720px;
+    margin: 12px auto;
+    color: #fff;
+    text-align: center;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  .supportedformatsTxt{
+    font-size: 12px;
+  }
+
+
 
 /* --- Desktop-Specific Adjustments --- */
 @media screen and (min-width: 769px) {

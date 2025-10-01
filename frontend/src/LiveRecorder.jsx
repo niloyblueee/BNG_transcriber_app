@@ -276,8 +276,9 @@ export default function LiveRecorder({ user, setTranscription, setSummary, setKe
     <div className={`live-recorder ${recording ? 'is-recording' : ''}`}>
       <div className="controls">
         <p className="recorder-note">
-        ⚠️ Recommended: Live Recordings should be 20 minutes or less. <br />
-            For longer audio, please use the file upload option.
+
+        <strong> Record Live and Upload for transcription</strong>. <br />  
+        🎙️Click "Start Recording" to begin         
         </p>
         <div className="left-controls">
           {!recording ? (

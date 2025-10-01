@@ -363,10 +363,17 @@ return (
                 {user && (
                   <>
                     <div className="upload-area">
+                      <p> <strong>📁Upload your audio file for transcription</strong>
+                      <br />
+                      <p className='supportedformatsTxt'>(Supported formats: mp3, m4a, mp4, aac, wav)</p>
+                      </p>
+                      
+                      
+                      
                       <input 
                         className="cursor-target" 
                         type="file" 
-                        accept="audio/*,video/*, .mp4, .m4a, .acc, audio/mp4, audio/aac, audio/x-m4a, audio/mp3, audio/x-mp3" 
+                        accept="audio/*, .mp4, .m4a, .acc, audio/mp4, audio/aac, audio/x-m4a, audio/mp3, audio/x-mp3" 
                         onChange={handleFileChange} 
                       />
                       <button className="cursor-target Upload-btn" onClick={handleUpload}>
