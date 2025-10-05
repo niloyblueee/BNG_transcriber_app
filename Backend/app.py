@@ -57,7 +57,7 @@ AUDIO_EXTS = {".mp3", ".m4a", ".wav", ".webm", ".ogg"}
 AUDIO_FOLDER = Path(__file__).parent
 
 app = Flask(__name__, static_folder="dist", static_url_path="")
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+CORS(app, resources={r"/*": {"origins": "https://branscriber.up.railway.app"}}, supports_credentials=True)
 
 AudioSegment.converter = ffmpeg.get_ffmpeg_exe()
 """
