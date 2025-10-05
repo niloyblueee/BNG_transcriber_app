@@ -384,7 +384,7 @@ return (
                       <input 
                         className="cursor-target" 
                         type="file" 
-                        accept="audio/*, .mp4, .m4a, .acc, audio/mp4, audio/aac, audio/x-m4a, audio/mp3, audio/x-mp3" 
+                        accept="audio/*, .mp4, .m4a, .aac, audio/mp4, audio/aac, audio/x-m4a, audio/mp3, audio/x-mp3" 
                         onChange={handleFileChange} 
                       />
                       <button className="cursor-target Upload-btn" onClick={handleUpload}>
