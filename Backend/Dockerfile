@@ -8,6 +8,12 @@ ENV PYTHONUNBUFFERED=1
 # ---------- Working directory ----------
 WORKDIR /app
 
+# ---------- Install OS deps (ffmpeg) ----------
+# keep lists cleaned up to reduce image size
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ffmpeg && \
+    rm -rf /var/lib/apt/lists/*
+
 # ---------- Install dependencies ----------
 # Copy only requirements first to leverage Docker caching
 COPY Backend/requirements.txt .
@@ -27,5 +33,5 @@ ENV FLASK_ENV=production
 ENV PORT=5000
 
 # ---------- Run command ----------
-CMD ["python", "app.py"]
+CMD ["gunicorn", "--workers", "4", "--bind", "0.0.0.0:5000", "app:app"]
 
