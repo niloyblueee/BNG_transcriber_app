@@ -27,5 +27,5 @@ ENV FLASK_ENV=production
 ENV PORT=5000
 
 # ---------- Run command ----------
-# Railway automatically injects PORT, so use it dynamically
-CMD ["sh", "-c", "flask run --host=0.0.0.0 --port=${PORT}"]
+CMD ["python", "app.py"]
+
