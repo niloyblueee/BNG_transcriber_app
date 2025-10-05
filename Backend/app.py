@@ -57,10 +57,25 @@ AUDIO_EXTS = {".mp3", ".m4a", ".wav", ".webm", ".ogg"}
 AUDIO_FOLDER = Path(__file__).parent
 
 app = Flask(__name__, static_folder="dist", static_url_path="")
-CORS(app, resources={r"/*": {"origins": "https://branscriber.up.railway.app"}},
-      supports_credentials=True,
-      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
+allowed_origin = "https://branscriber.up.railway.app"
+
+CORS(
+    app,
+    resources={r"/*": {"origins": allowed_origin}},
+    supports_credentials=True,
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"]
+)
+
+# Extra safety: ensure headers on every response (helps if proxy/redirects remove CORS)
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = allowed_origin
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, Accept"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    return response
 AudioSegment.converter = ffmpeg.get_ffmpeg_exe()
 """
 @app.route("/")
