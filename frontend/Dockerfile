@@ -38,7 +38,8 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Optional: copy a custom nginx config to handle client-side routing (see below)
 # If you don't copy a custom config, the default nginx config will serve files,
 # but client-side routing (e.g. /dashboard on refresh) may 404.
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+
 
 # Expose port 80 (Railway / hosting platforms use this to route HTTP)
 EXPOSE 80
