@@ -53,7 +53,7 @@ if not ELEVEN_API_KEY:
 print("Hello world")
 
 
-AUDIO_EXTS = {".mp3", ".m4a", ".wav", ".webm", ".ogg"}
+AUDIO_EXTS = {".mp3", ".m4a", ".wav", ".webm", ".ogg", ".aac"}
 AUDIO_FOLDER = Path(__file__).parent
 
 app = Flask(__name__, static_folder="dist", static_url_path="")
