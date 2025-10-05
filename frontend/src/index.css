@@ -251,6 +251,125 @@ button:focus-visible {
     font-size: 12px;
   }
 
+  
+/*glow*/
+
+/* Glow-dot with continuous trail (vanilla CSS) */
+
+/* Container default variables — override in your stylesheet or via modifier classes */
+.glow-dot-container {
+  position: relative;
+  overflow: hidden;
+  --dot-size: 6px;         /* main dot diameter */
+  --dot-color: #00eaff;     /* dot color */
+  --speed: 4s;              /* full lap duration */
+  --direction: normal;
+
+  /* trail tuning */
+  --trail-count: 12;        /* informational only — actual elements are in HTML */
+  --trail-blur: 8px;        /* blur for each trail segment */
+  --trail-mult: 2;        /* size multiplier for early trail pieces */
+  --trail-opacity: 0.45;    /* max opacity of trailing pieces */
+}
+
+/* shared animation path (perimeter of box) */
+@keyframes glideAround {
+  0%   { left: 0; top: 0; }
+  25%  { left: calc(100% - var(--dot-size)); top: 0; }
+  50%  { left: calc(100% - var(--dot-size)); top: calc(100% - var(--dot-size)); }
+  75%  { left: 0; top: calc(100% - var(--dot-size)); }
+  100% { left: 0; top: 0; }
+}
+
+/* main bright dot */
+.glow-dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--dot-size);
+  height: var(--dot-size);
+  border-radius: 50%;
+  background: var(--dot-color);
+  pointer-events: none;
+  z-index: 9999;
+  box-shadow:
+    0 0 calc(var(--dot-size) * 0.4) rgba(255,255,255,0.95),
+    0 0 calc(var(--dot-size) * 1.6) var(--dot-color);
+
+  animation: glideAround var(--speed) linear infinite;
+  animation-direction: var(--direction);
+  will-change: left, top, transform, opacity;
+}
+
+/* trail wrapper — holds the segments */
+.glow-trail {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* each trail segment (small blurred dot) */
+.glow-trail span {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  width: calc(var(--dot-size) * 1.0);
+  height: calc(var(--dot-size) * 1.0);
+  border-radius: 50%;
+  background: var(--dot-color);
+  filter: blur(var(--trail-blur));
+  transform-origin: center;
+  opacity: 0;
+  box-shadow:
+    0 0 calc(var(--dot-size) * 0.9) rgba(255,255,255,0.6),
+    0 0 calc(var(--dot-size) * 2.0) var(--dot-color);
+
+  /* same path as the main dot; each span will be staggered by negative delay */
+  animation: glideAround var(--speed) linear infinite;
+  animation-direction: var(--direction);
+  will-change: left, top, transform, opacity;
+}
+
+/* Staggered delays & decreasing size/opacity for a smooth continuous tail.
+   Adjust the multipliers if you change the number of <span> elements above.
+   These use negative delays so the segments appear behind the dot. */
+.glow-trail span:nth-child(1)  { animation-delay: 0s;  opacity: 1; transform: scale(1);  filter: blur(6px); }
+.glow-trail span:nth-child(2)  { animation-delay: calc(var(--speed) * -0.04); opacity: 0.92; transform: scale(0.95); filter: blur(7px); }
+.glow-trail span:nth-child(3)  { animation-delay: calc(var(--speed) * -0.08); opacity: 0.82; transform: scale(0.88); filter: blur(7.5px); }
+.glow-trail span:nth-child(4)  { animation-delay: calc(var(--speed) * -0.12); opacity: 0.72; transform: scale(0.82); filter: blur(8px); }
+.glow-trail span:nth-child(5)  { animation-delay: calc(var(--speed) * -0.16); opacity: 0.62; transform: scale(0.76); filter: blur(8.5px); }
+.glow-trail span:nth-child(6)  { animation-delay: calc(var(--speed) * -0.20); opacity: 0.52; transform: scale(0.70); filter: blur(9px); }
+.glow-trail span:nth-child(7)  { animation-delay: calc(var(--speed) * -0.24); opacity: 0.42; transform: scale(0.64); filter: blur(9.5px); }
+.glow-trail span:nth-child(8)  { animation-delay: calc(var(--speed) * -0.28); opacity: 0.34; transform: scale(0.58); filter: blur(10px); }
+.glow-trail span:nth-child(9)  { animation-delay: calc(var(--speed) * -0.32); opacity: 0.26; transform: scale(0.52); filter: blur(10.5px); }
+.glow-trail span:nth-child(10) { animation-delay: calc(var(--speed) * -0.36); opacity: 0.20; transform: scale(0.46); filter: blur(11px); }
+.glow-trail span:nth-child(11) { animation-delay: calc(var(--speed) * -0.40); opacity: 0.14; transform: scale(0.40); filter: blur(11.5px); }
+.glow-trail span:nth-child(12) { animation-delay: calc(var(--speed) * -0.44); opacity: 0.08; transform: scale(0.34); filter: blur(12px); }
+
+/* optional: put dot/trail behind content */
+.glow-dot-container.behind .glow-dot,
+.glow-dot-container.behind .glow-trail { z-index: 0; }
+.glow-dot-container.behind > * { position: relative; z-index: 1; }
+
+/* modifier examples */
+.glow-dot-container.small { --dot-size: 8px; --speed: 5.5s; --trail-blur: 6px; }
+.glow-dot-container.large { --dot-size: 20px; --speed: 3.2s; --trail-blur: 10px; }
+.glow-dot-container.fast  { --speed: 2.2s; }
+.glow-dot-container.slow  { --speed: 8s;  }
+
+/* color helpers */
+.glow-dot-container.teal  { --dot-color: #00eaff; }
+.glow-dot-container.coral { --dot-color: #ff6b6b; }
+.glow-dot-container.lime  { --dot-color: #9aff7d; }
+
+
+
+
+
+
+
 
 
 /* --- Desktop-Specific Adjustments --- */

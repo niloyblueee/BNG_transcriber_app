@@ -273,7 +273,19 @@ export default function LiveRecorder({ user, setTranscription, setSummary, setKe
     };
 
   return (
-    <div className={`live-recorder ${recording ? 'is-recording' : ''}`}>
+    <div className={`live-recorder ${recording ? 'is-recording' : ''} glow-dot-container`}>
+
+        <div className="glow-trail" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+        </div>
+
+        {/* main dot */}
+        <div className="glow-dot" aria-hidden="true"></div>
+
+
       <div className="controls">
         <p className="recorder-note">
 

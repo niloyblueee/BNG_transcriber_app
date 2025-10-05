@@ -362,7 +362,18 @@ return (
               <main>
                 {user && (
                   <>
-                    <div className="upload-area">
+                    <div className="upload-area glow-dot-container">
+
+                            <div className="glow-trail" aria-hidden="true">
+                              <span></span><span></span><span></span><span></span>
+                              <span></span><span></span><span></span><span></span>
+                              <span></span><span></span><span></span><span></span>
+                              <span></span><span></span><span></span><span></span>
+                            </div>
+
+                            {/* main dot */}
+                            <div className="glow-dot" aria-hidden="true"></div>
+
                       <p> <strong>📁Upload your audio file for transcription</strong>
                       <br />
                       <p className='supportedformatsTxt'>(Supported formats: mp3, m4a, mp4, aac, wav)</p>
