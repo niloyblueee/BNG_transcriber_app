@@ -5,14 +5,14 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 # Copy package manifests first (cache speed-up)
-COPY package*.json ./
+COPY frontend/package*.json ./
 # If you use pnpm or yarn, adjust accordingly (copy lockfile etc.)
 
 # Install dependencies (use npm ci if package-lock.json exists for reproducible installs)
 RUN npm ci
 
 # Copy source
-COPY . .
+COPY frontend/. .
 
 # Build-time args for Vite environment variables (prefix with VITE_)
 # Example: --build-arg VITE_API_URL=https://api.example.com
