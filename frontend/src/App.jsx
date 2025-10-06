@@ -466,15 +466,17 @@ return (
                   </>
                 )}
               </main>
+                {/* Footer */}
+              <FooterAd />
               </>
+              
             } 
           />
 
           <Route path="/packages" element={<PackagePage />} />
         </Routes>
 
-        {/* Footer */}
-        <FooterAd />
+
       </div>
     </ClickSpark>
   </>

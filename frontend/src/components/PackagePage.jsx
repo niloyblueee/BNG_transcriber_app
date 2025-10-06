@@ -183,14 +183,17 @@ const PackagePage = () => {
                                                 </Popover.Positioner>
                                             </Portal>
                                         </Popover.Root>
-
-
                                     </Card.Footer>
                                 </Card.Root>
                             ))
                         }
                     </Stack>
-
+                <p>
+                    Having issues with your payment or package activation?<br />
+                    Contact us at{" "}
+                    <a href="mailto:niloynilblue@gmail.com"> <u>niloynilblue@gmail.com</u></a>
+                    <br /><a href="https://wa.me/01799937774"><u>WhatsApp: 01799937774</u></a>
+                </p> 
                 </div>
             </Provider >
         </>
