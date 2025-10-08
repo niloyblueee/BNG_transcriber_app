@@ -55,7 +55,7 @@ const PackagePage = () => {
 
         const n1 = n1El ? n1El.value.trim() : '';
         const n2 = n2El ? n2El.value.trim() : '';
-
+        
         if (!n1) {
             toast.error('Please enter your Bkash Account Number.');
             if (n1El) n1El.focus();
@@ -71,7 +71,7 @@ const PackagePage = () => {
             const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/send_button_click`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ SenderBkashNumber: n1, SenderBkashTxnID: n2 })
+                body: JSON.stringify({ SenderBkashNumber: n1, SenderBkashTxnID: n2, SenderEmail: email })
             });
             if (!res.ok) throw new Error('Network response not ok');
 
@@ -171,6 +171,10 @@ const PackagePage = () => {
                                                                 <Field.Root>
                                                                     <Field.Label>Bkash Transaction ID</Field.Label>
                                                                     <Input placeholder="Txn ID" id={`SenderBkashTxnID-${idx}`}  required />
+                                                                </Field.Root>
+                                                                <Field.Root>
+                                                                    <Field.Label>Your Email</Field.Label>
+                                                                    <Input placeholder="Email" id={`SenderEmail-${idx}`} required />
                                                                 </Field.Root>
 
                                                                 <Button backgroundColor={"blue.600"} _hover={{ bg: "blue.500" }} onClick={() => handleButtonClick(idx)}>
