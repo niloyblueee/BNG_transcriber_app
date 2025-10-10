@@ -58,7 +58,7 @@ AUDIO_FOLDER = Path(__file__).parent
 
 app = Flask(__name__, static_folder="dist", static_url_path="")
 
-allowed_origin = "https://branscriber.up.railway.app"
+allowed_origin = "https://branscriber.xyz"
 
 CORS(
     app,
