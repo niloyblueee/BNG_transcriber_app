@@ -260,7 +260,7 @@ button:focus-visible {
 .glow-dot-container {
   position: relative;
   overflow: hidden;
-  --dot-size: 6px;         /* main dot diameter */
+  --dot-size: 4px;         /* main dot diameter */
   --dot-color: #00eaff;     /* dot color */
   --speed: 4s;              /* full lap duration */
   --direction: normal;
@@ -268,7 +268,7 @@ button:focus-visible {
   /* trail tuning */
   --trail-count: 12;        /* informational only — actual elements are in HTML */
   --trail-blur: 8px;        /* blur for each trail segment */
-  --trail-mult: 2;        /* size multiplier for early trail pieces */
+  --trail-mult: 1;        /* size multiplier for early trail pieces */
   --trail-opacity: 0.45;    /* max opacity of trailing pieces */
 }
 
