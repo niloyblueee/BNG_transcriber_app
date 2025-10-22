@@ -10,6 +10,7 @@ from openai import OpenAI
 from flask_cors import CORS
 import mysql.connector
 import math
+from urllib.parse import urlparse, unquote
 
 # Re-added the requests import
 import requests as pyrequests 
@@ -402,7 +403,7 @@ def transcribe_smart_chunk():
         except OSError:
             pass
 
-        
+'''     
 def get_db_connection():
     return mysql.connector.connect(
         host=os.getenv("MYSQL_HOST"),
@@ -411,6 +412,43 @@ def get_db_connection():
         database=os.getenv("MYSQL_DATABASE"),
         port=int(os.getenv("MYSQL_PORT", 3306))
     )
+'''
+#egress  cost is fucking me 
+def get_db_connection():
+    """
+    Connect using a single MYSQL_URL env var if provided (Railway internal URL).
+    Otherwise fall back to older individual env vars for local development.
+    Supports URLs like: mysql://user:pass@host:3306/dbname
+    """
+    mysql_url = os.getenv("MYSQL_URL") or os.getenv("DATABASE_URL")  # common alternates
+
+    if mysql_url:
+        # Parse URL form
+        parsed = urlparse(mysql_url)
+        # parsed.scheme should be 'mysql' (we ignore scheme beyond sanity)
+        user = unquote(parsed.username) if parsed.username else os.getenv("MYSQL_USER")
+        password = unquote(parsed.password) if parsed.password else os.getenv("MYSQL_PASSWORD")
+        host = parsed.hostname or os.getenv("MYSQL_HOST", "127.0.0.1")
+        port = parsed.port or int(os.getenv("MYSQL_PORT", 3306))
+        # path usually like '/dbname' -> strip leading slash
+        database = parsed.path.lstrip("/") if parsed.path else os.getenv("MYSQL_DATABASE")
+
+        # Safety: final sanity check
+        if not (user and password and host and database):
+            raise RuntimeError(
+                "Database URL found but missing components. "
+                "Ensure MYSQL_URL contains user:pass@host:port/dbname or set individual env vars for local dev."
+            )
+
+        return mysql.connector.connect(
+            host=host,
+            user=user,
+            password=password,
+            database=database,
+            port=int(port),
+            connection_timeout=10
+        )
+
 
 def get_user_from_db(email, name=None):
     conn = get_db_connection()
